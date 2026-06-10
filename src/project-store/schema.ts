@@ -6,6 +6,7 @@ export type SerializedSlide = {
   filename: string
   type: 'image' | 'video'
   durationInFrames: number
+  excluded?: boolean
 }
 
 export type SlideshowJson = {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Player } from '@remotion/player'
 import type { MediaSlide } from '../timeline-core/types'
+import { moveSlide, toggleExcluded, filterIncluded } from '../timeline-core'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import {
   openProject,
@@ -13,7 +14,7 @@ import {
   SCHEMA_VERSION,
 } from '../project-store'
 import { SlideshowComposition, CROSSFADE_FRAMES } from '../composition'
-import { ThumbnailList } from './ThumbnailList'
+import { StoryboardGrid } from './StoryboardGrid'
 import './App.css'
 
 const FPS = 30
@@ -28,19 +29,18 @@ function computeTotalFrames(slides: MediaSlide[]): number {
   return Math.max(1, sum - transitions)
 }
 
-// Merge saved order from slideshow.json with fresh enumerated slides.
-// Saved slides that are still present keep their order; new files append at end.
+// Merge saved order/exclusions from slideshow.json with fresh enumerated slides.
+// Known files keep their saved order and excluded flag; new files append at end.
 function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaSlide[] {
   const byFilename = new Map(enumerated.map((s) => [s.filename, s]))
   const ordered: MediaSlide[] = []
-  for (const saved_slide of saved.slides) {
-    const live = byFilename.get(saved_slide.filename)
+  for (const s of saved.slides) {
+    const live = byFilename.get(s.filename)
     if (live) {
-      ordered.push({ ...live, durationInFrames: saved_slide.durationInFrames })
-      byFilename.delete(saved_slide.filename)
+      ordered.push({ ...live, durationInFrames: s.durationInFrames, excluded: s.excluded ?? false })
+      byFilename.delete(s.filename)
     }
   }
-  // Append new files not in saved state
   for (const slide of byFilename.values()) ordered.push(slide)
   return ordered
 }
@@ -48,11 +48,12 @@ function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaS
 function slidesToJson(slides: MediaSlide[]): SlideshowJson {
   return {
     schemaVersion: SCHEMA_VERSION,
-    slides: slides.map(({ id, filename, type, durationInFrames }) => ({
+    slides: slides.map(({ id, filename, type, durationInFrames, excluded }) => ({
       id,
       filename,
       type,
       durationInFrames,
+      excluded,
     })),
   }
 }
@@ -70,19 +71,16 @@ export function App() {
   const latestSlidesRef = useRef<MediaSlide[]>([])
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load recent projects on mount
   useEffect(() => {
     listRecentProjects().then(setRecentProjects).catch(() => {})
   }, [])
 
-  // Revoke queued old URLs after each slides commit
   useEffect(() => {
     revokeSlideBlobUrls(pendingRevokeRef.current)
     pendingRevokeRef.current = []
     latestSlidesRef.current = slides
   }, [slides])
 
-  // Revoke current slides on unmount
   useEffect(() => {
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
@@ -90,7 +88,6 @@ export function App() {
     }
   }, [])
 
-  // Debounced autosave: fires 2s after last slide change
   useEffect(() => {
     const handle = dirHandleRef.current
     if (!handle) return
@@ -122,15 +119,13 @@ export function App() {
   const openFolder = useCallback(
     async (handle: FileSystemDirectoryHandle) => {
       dirHandleRef.current = handle
-
       const result = await openProject(handle)
       setCorruptError(null)
       if (result.status === 'corrupt') {
         setCorruptError(result.error)
-        await loadFolder(handle) // enumerate files fresh; ignore corrupt state
+        await loadFolder(handle)
         return
       }
-
       await loadFolder(handle, result.data)
       await addRecentProject(handle).catch(() => {})
       setRecentProjects(await listRecentProjects().catch(() => []))
@@ -173,11 +168,20 @@ export function App() {
     [openFolder],
   )
 
+  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
+    setSlides(prev => moveSlide(prev, fromIndex, toIndex))
+  }, [])
+
+  const handleToggleExclude = useCallback((id: string) => {
+    setSlides(prev => toggleExcluded(prev, id))
+  }, [])
+
   const handleStartFresh = useCallback(() => {
     setCorruptError(null)
   }, [])
 
-  const totalFrames = computeTotalFrames(slides)
+  const includedSlides = filterIncluded(slides)
+  const totalFrames = computeTotalFrames(includedSlides)
 
   return (
     <div className="app">
@@ -216,7 +220,7 @@ export function App() {
             compositionWidth={COMP_WIDTH}
             compositionHeight={COMP_HEIGHT}
             fps={FPS}
-            inputProps={{ slides }}
+            inputProps={{ slides: includedSlides }}
             controls
             style={{ width: '100%', aspectRatio: `${COMP_WIDTH}/${COMP_HEIGHT}` }}
           />
@@ -224,7 +228,11 @@ export function App() {
 
         {slides.length > 0 && (
           <aside className="thumbnail-panel">
-            <ThumbnailList slides={slides} />
+            <StoryboardGrid
+              slides={slides}
+              onReorder={handleReorder}
+              onToggleExclude={handleToggleExclude}
+            />
           </aside>
         )}
 

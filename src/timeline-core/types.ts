@@ -10,4 +10,6 @@ export type MediaSlide = {
   blobUrl: string
   /** duration in frames at 30 fps */
   durationInFrames: number
+  /** excluded from timeline but still in folder */
+  excluded: boolean
 }

@@ -57,6 +57,7 @@ export async function enumerateFolder(
         type,
         blobUrl,
         durationInFrames,
+        excluded: false,
       })
     }
     return slides
