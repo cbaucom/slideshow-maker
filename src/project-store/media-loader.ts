@@ -4,8 +4,9 @@ import type { MediaSlide } from '../timeline-core/types'
 
 const FPS = 30
 const IMAGE_DURATION_FRAMES = 3 * FPS // 3s at 30fps
-// Must be > CROSSFADE_FRAMES (15) so TransitionSeries never gets a sequence
-// shorter than its adjacent transition window.
+// The planner clamps transitions per-pair, so any video length is safe — but
+// very short videos yield very short effective transitions (odd UX). 16 is a
+// practical floor; see TRANSITION_FRAMES in sequence-planner/planner.ts.
 const MIN_VIDEO_FRAMES = 16
 
 async function getVideoDurationFrames(file: File): Promise<number> {
