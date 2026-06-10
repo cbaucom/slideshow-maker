@@ -308,3 +308,118 @@ button:disabled {
   padding: 0;
 }
 .storyboard-toggle:hover { background: #333; color: #fff; }
+
+.storyboard-item--selected {
+  background: #1e3a5f;
+  outline: 2px solid #2563eb;
+}
+
+.storyboard-customized {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  color: #f59e0b;
+  font-size: 10px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Slide settings dialog */
+.slide-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.slide-dialog {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 320px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slide-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.slide-dialog-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #eee;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slide-dialog-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.slide-dialog-close:hover { color: #eee; background: transparent; }
+
+.override-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.override-label {
+  flex: 1;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.override-reset {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.override-reset:hover { background: #333; color: #eee; }
+
+.override-default {
+  font-size: 11px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.slide-dialog-footer {
+  border-top: 1px solid #2a2a2a;
+  padding-top: 8px;
+}
+
+.override-reset-all {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #555;
+  color: #aaa;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.override-reset-all:hover { background: #333; color: #eee; }

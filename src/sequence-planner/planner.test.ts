@@ -266,3 +266,53 @@ describe('plan — fit mode resolution', () => {
     expect(plan([IMG], blur).entries[0].fitMode).toBe('blur-fill')
   })
 })
+
+// --- Per-slide overrides ---
+
+describe('plan — per-slide overrides', () => {
+  const BASE: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'cover', kenBurns: true, transitionType: 'crossfade' }
+
+  it('slide fitMode override wins over global', () => {
+    const img = makeSlide('i', 'image', 90)
+    const overridden = { ...img, overrides: { fitMode: 'contain' as const } }
+    const result = plan([overridden], BASE)
+    expect(result.entries[0].fitMode).toBe('contain')
+  })
+
+  it('slide kenBurns=false override disables Ken Burns for that slide only', () => {
+    const img1 = makeSlide('a', 'image', 90)
+    const img2 = { ...makeSlide('b', 'image', 90), overrides: { kenBurns: false } }
+    const result = plan([img1, img2], BASE)
+    expect(result.entries[0].kenBurns).not.toBeNull()
+    expect(result.entries[1].kenBurns).toBeNull()
+  })
+
+  it('slide transitionType override changes only that slide\'s transitionIn', () => {
+    const img1 = makeSlide('a', 'image', 90)
+    const img2 = { ...makeSlide('b', 'image', 90), overrides: { transitionType: 'cut' as const } }
+    const result = plan([img1, img2], BASE)
+    expect(result.entries[0].transitionIn).toBeUndefined()
+    expect(result.entries[1].transitionIn?.type).toBe('cut')
+    expect(result.entries[1].transitionIn?.durationInFrames).toBe(0)
+  })
+
+  it('slide imageDurationSecs override changes duration for image slides', () => {
+    const img = { ...makeSlide('a', 'image', 90), overrides: { imageDurationSecs: 5 } }
+    const result = plan([img], BASE)
+    // 5 seconds × 30 fps = 150 frames
+    expect(result.entries[0].durationInFrames).toBe(150)
+    expect(result.totalFrames).toBe(150)
+  })
+
+  it('imageDurationSecs override does not affect video slides', () => {
+    const vid = { ...makeSlide('v', 'video', 120), overrides: { imageDurationSecs: 5 } }
+    const result = plan([vid], BASE)
+    expect(result.entries[0].durationInFrames).toBe(120) // unchanged
+  })
+
+  it('undefined override field falls back to global', () => {
+    const img = { ...makeSlide('a', 'image', 90), overrides: { fitMode: undefined } }
+    const result = plan([img], BASE)
+    expect(result.entries[0].fitMode).toBe('cover') // global default
+  })
+})
