@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Playwright CLI test artifacts (screenshots, snapshots, console logs)
+.playwright-cli/
+
+# Claude Code temp files
+.claude/tmp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
