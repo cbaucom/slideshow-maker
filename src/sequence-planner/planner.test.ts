@@ -16,6 +16,9 @@ const CROSSFADE: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 
 const DIP: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'dip-to-black' }
 const CUT: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut' }
 
+const KB_ON: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, kenBurns: true, fitMode: 'cover' }
+const KB_OFF: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, kenBurns: false, fitMode: 'cover' }
+
 // --- Golden snapshot: 3 slides, crossfade ---
 
 describe('plan — crossfade golden snapshot', () => {
@@ -177,4 +180,67 @@ describe('plan — properties', () => {
       expect(result.entries[0].transitionIn).toBeUndefined()
     })
   }
+})
+
+// --- Ken Burns ---
+
+describe('plan — Ken Burns vectors', () => {
+  const IMG_A = makeSlide('a', 'image', 90)
+  const IMG_B = makeSlide('b', 'image', 90)
+  const IMG_C = makeSlide('c', 'image', 90)
+  const IMG_D = makeSlide('d', 'image', 90)
+  const VID = makeSlide('v', 'video', 120)
+
+  it('consecutive photo slides alternate zoom-in / zoom-out deterministically', () => {
+    const result = plan([IMG_A, IMG_B, IMG_C, IMG_D], KB_ON)
+    const directions = result.entries.map(e =>
+      e.kenBurns
+        ? (e.kenBurns.toScale > e.kenBurns.fromScale ? 'zoom-in' : 'zoom-out')
+        : null,
+    )
+    expect(directions).toEqual(['zoom-in', 'zoom-out', 'zoom-in', 'zoom-out'])
+  })
+
+  it('kenBurns is null for all slides when disabled', () => {
+    const result = plan([IMG_A, IMG_B, VID], KB_OFF)
+    for (const e of result.entries) expect(e.kenBurns).toBeNull()
+  })
+
+  it('kenBurns is null for video slides even when enabled', () => {
+    const result = plan([IMG_A, VID, IMG_B], KB_ON)
+    expect(result.entries[0].kenBurns).not.toBeNull()
+    expect(result.entries[1].kenBurns).toBeNull()  // video
+    expect(result.entries[2].kenBurns).not.toBeNull()
+  })
+
+  it('same slide index always produces same vector (deterministic)', () => {
+    const r1 = plan([IMG_A, IMG_B], KB_ON)
+    const r2 = plan([IMG_A, IMG_B], KB_ON)
+    expect(r1.entries[0].kenBurns).toEqual(r2.entries[0].kenBurns)
+    expect(r1.entries[1].kenBurns).toEqual(r2.entries[1].kenBurns)
+  })
+})
+
+// --- Fit modes ---
+
+describe('plan — fit mode resolution', () => {
+  const IMG = makeSlide('i', 'image', 90)
+  const VID = makeSlide('v', 'video', 120)
+
+  it('videos always get fitMode=contain regardless of global setting', () => {
+    const settings: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'cover' }
+    const result = plan([IMG, VID], settings)
+    expect(result.entries[0].fitMode).toBe('cover')
+    expect(result.entries[1].fitMode).toBe('contain')
+  })
+
+  it('images inherit global fitMode', () => {
+    const cover: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'cover' }
+    const contain: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'contain' }
+    const blur: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'blur-fill' }
+
+    expect(plan([IMG], cover).entries[0].fitMode).toBe('cover')
+    expect(plan([IMG], contain).entries[0].fitMode).toBe('contain')
+    expect(plan([IMG], blur).entries[0].fitMode).toBe('blur-fill')
+  })
 })

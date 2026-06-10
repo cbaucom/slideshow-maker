@@ -1,12 +1,21 @@
-import type { GlobalSettings, TransitionType } from '../timeline-core/settings'
+import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
 import type { MediaSlide } from '../timeline-core/types'
-import type { MediaMetadata, RenderPlan, RenderPlanEntry, TransitionSpec } from './types'
+import type { KenBurnsVector, MediaMetadata, RenderPlan, RenderPlanEntry, TransitionSpec } from './types'
 
 export const TRANSITION_FRAMES: Record<TransitionType, number> = {
   crossfade: 15,
   'dip-to-black': 30,
   cut: 0,
 }
+
+// 4 Ken Burns presets cycling by slide index. Even indices zoom-in, odd zoom-out.
+// Pan offsets are fractional (0.05 = 5% of the slide dimension).
+const KB_PRESETS: KenBurnsVector[] = [
+  { fromScale: 1.0, toScale: 1.12, fromX: -0.03, fromY: 0.02, toX: 0.03, toY: -0.02 },
+  { fromScale: 1.12, toScale: 1.0, fromX: 0.03, fromY: -0.02, toX: -0.03, toY: 0.02 },
+  { fromScale: 1.0, toScale: 1.12, fromX: 0.03, fromY: 0.02, toX: -0.03, toY: -0.02 },
+  { fromScale: 1.12, toScale: 1.0, fromX: -0.03, fromY: 0.02, toX: 0.03, toY: -0.02 },
+]
 
 export function plan(
   slides: MediaSlide[],
@@ -19,6 +28,15 @@ export function plan(
 
   function getDuration(slide: MediaSlide): number {
     return mediaMetadata?.get(slide.filename)?.durationInFrames ?? slide.durationInFrames
+  }
+
+  function getFitMode(slide: MediaSlide): FitMode {
+    return slide.type === 'video' ? 'contain' : settings.fitMode
+  }
+
+  function getKenBurns(slide: MediaSlide, index: number): KenBurnsVector | null {
+    if (!settings.kenBurns || slide.type === 'video') return null
+    return KB_PRESETS[index % KB_PRESETS.length]
   }
 
   // Pass 1: compute effective transition duration for each non-first slide.
@@ -44,7 +62,14 @@ export function plan(
         ? undefined
         : { type: settings.transitionType, durationInFrames: effectiveTrans[i] }
 
-    entries.push({ slide, startFrame: cursor, durationInFrames, transitionIn })
+    entries.push({
+      slide,
+      startFrame: cursor,
+      durationInFrames,
+      transitionIn,
+      fitMode: getFitMode(slide),
+      kenBurns: getKenBurns(slide, i),
+    })
 
     // Advance by this slide's duration minus the NEXT slide's inbound transition overlap.
     if (i < slides.length - 1) {

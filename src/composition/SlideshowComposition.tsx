@@ -1,12 +1,11 @@
 import React from 'react'
-import { AbsoluteFill, Img } from 'remotion'
+import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion'
 import { Video } from '@remotion/media'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { TransitionPresentation, TransitionPresentationComponentProps } from '@remotion/transitions'
-import type { RenderPlan } from '../sequence-planner/types'
+import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
-import type { MediaSlide } from '../timeline-core/types'
 
 export type SlideshowProps = {
   plan: RenderPlan
@@ -63,7 +62,7 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
             />
           )}
           <TransitionSeries.Sequence durationInFrames={entry.durationInFrames} premountFor={30}>
-            <MediaSlideView slide={entry.slide} />
+            <MediaSlideView entry={entry} />
           </TransitionSeries.Sequence>
         </React.Fragment>
       ))}
@@ -71,20 +70,88 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   )
 }
 
-function MediaSlideView({ slide }: { slide: MediaSlide }) {
-  const fillStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' }
+function MediaSlideView({ entry }: { entry: RenderPlanEntry }) {
+  const { slide, fitMode, kenBurns, durationInFrames } = entry
+  const frame = useCurrentFrame()
+
+  // Compute Ken Burns transform (images only; null for videos).
+  let kenBurnsStyle: React.CSSProperties = {}
+  if (kenBurns) {
+    const progress = interpolate(frame, [0, durationInFrames], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    })
+    const scale = interpolate(progress, [0, 1], [kenBurns.fromScale, kenBurns.toScale])
+    const tx = interpolate(progress, [0, 1], [kenBurns.fromX * 100, kenBurns.toX * 100])
+    const ty = interpolate(progress, [0, 1], [kenBurns.fromY * 100, kenBurns.toY * 100])
+    kenBurnsStyle = { transform: `scale(${scale}) translate(${tx}%, ${ty}%)` }
+  }
 
   if (slide.type === 'video') {
+    // Videos are always letterboxed (contain), never cropped.
     return (
-      <AbsoluteFill>
-        <Video src={slide.blobUrl} style={fillStyle} />
+      <AbsoluteFill style={{ background: '#000' }}>
+        <Video
+          src={slide.blobUrl}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
       </AbsoluteFill>
     )
   }
 
+  if (fitMode === 'blur-fill') {
+    return (
+      <AbsoluteFill style={{ background: '#000' }}>
+        {/* Blurred full-bleed background */}
+        <AbsoluteFill style={{ overflow: 'hidden' }}>
+          <Img
+            src={slide.blobUrl}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'blur(24px)',
+              transform: 'scale(1.1)',
+            }}
+            alt=""
+          />
+        </AbsoluteFill>
+        {/* Contained image on top with Ken Burns */}
+        <AbsoluteFill style={kenBurnsStyle}>
+          <Img
+            src={slide.blobUrl}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            alt=""
+          />
+        </AbsoluteFill>
+      </AbsoluteFill>
+    )
+  }
+
+  if (fitMode === 'contain') {
+    return (
+      <AbsoluteFill style={{ background: '#000' }}>
+        <AbsoluteFill style={kenBurnsStyle}>
+          <Img
+            src={slide.blobUrl}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            alt=""
+          />
+        </AbsoluteFill>
+      </AbsoluteFill>
+    )
+  }
+
+  // Default: cover (crop-to-fill) with Ken Burns.
   return (
-    <AbsoluteFill>
-      <Img src={slide.blobUrl} style={fillStyle} alt="" />
+    <AbsoluteFill style={{ overflow: 'hidden' }}>
+      <AbsoluteFill style={kenBurnsStyle}>
+        <Img
+          src={slide.blobUrl}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          alt=""
+        />
+      </AbsoluteFill>
     </AbsoluteFill>
   )
 }
