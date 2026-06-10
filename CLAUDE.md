@@ -7,6 +7,8 @@ Local-first web app: hand-curated slideshows with automatic, Apple-Memories-grad
 - Work happens one issue at a time via `/work-next-issue` → one small PR per issue, `Closes #N` in the body.
 - Issues labeled `ready-for-agent` are grabbable when their blockers are closed; `hitl` issues need the owner.
 - Creating issues from a plan: use the `to-issues` skill.
+- Pure-module implementation follows the `tdd` skill (vertical red-green-refactor; acceptance criteria are the approved behavior list).
+- Before any PR: the `code-reviewer` agent must APPROVE with zero blocking findings; UI-facing slices also get a `playwright-cli` smoke check against their acceptance criteria.
 
 ## Architecture (non-negotiable)
 

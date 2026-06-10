@@ -27,19 +27,28 @@ If an issue number was passed as an argument, use it. Otherwise:
 - Load relevant skills before writing code (e.g. `remotion-best-practices` for anything touching the composition or player).
 - Create a branch: `feat/<issue-number>-<short-slug>`.
 
-## 3. IMPLEMENT
+## 3. IMPLEMENT (TDD)
 
-- Build ONLY what the issue's acceptance criteria require. Resist scope creep; if you discover necessary work outside this slice, note it for a follow-up issue instead of doing it.
-- Follow the module boundaries in the PRD: decisions live in pure modules (Timeline Core, Beat Grid, Sequence Planner); the Composition and Editor Shell stay thin.
+- Load the `tdd` skill. For all pure-module work (Timeline Core, Beat Grid, Sequence Planner, Project Store against fakes, Jamendo client against mocks), use the red-green-refactor loop in **vertical slices**: one test → minimal implementation → next test. Never write all tests up front.
+- The issue's acceptance criteria ARE the approved behavior list — do not pause to ask the user which behaviors to test; the criteria were approved when the issue was created. Test through public interfaces only.
+- Build ONLY what the acceptance criteria require. Resist scope creep; if you discover necessary work outside this slice, note it for a follow-up issue instead of doing it.
+- Follow the module boundaries in the PRD: decisions live in pure modules; the Composition and Editor Shell stay thin.
 - Keep render paths deterministic: no wall-clock time or unseeded randomness in anything the Composition consumes.
-- Write/extend tests for every pure module touched (Vitest). Project Store against in-memory FS fakes; Jamendo client against mocked responses. No live network in tests.
+- No live network or real filesystem in tests.
 
 ## 4. VERIFY
 
 - `npm run test` and `npm run build` (and `npm run lint` if configured) must pass.
 - Walk each acceptance criterion and confirm it is satisfied. If one cannot be met, say so in the PR rather than silently skipping it.
+- **UI smoke check** (only for slices touching the Editor Shell or player UI): load the `playwright-cli` skill, start the dev server, and drive the browser through each UI-facing acceptance criterion — click, type, snapshot. Capture a screenshot of the end state for the PR. Skip this step entirely for pure-module slices.
 
-## 5. PULL REQUEST
+## 5. REVIEW
+
+- Invoke the `code-reviewer` agent with the branch diff and the issue.
+- Fix all blocking findings and re-run VERIFY. Iterate until the decision is APPROVE.
+- Include the final review verdict in the PR body.
+
+## 6. PULL REQUEST
 
 - Commit in small logical commits.
 - `gh pr create` with:
