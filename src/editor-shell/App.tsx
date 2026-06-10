@@ -93,7 +93,7 @@ export function App() {
   // Debounced autosave: fires 2s after last slide change
   useEffect(() => {
     const handle = dirHandleRef.current
-    if (!handle || slides.length === 0) return
+    if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
       saveProject(handle, slidesToJson(slides)).catch(console.error)
@@ -152,7 +152,13 @@ export function App() {
     const handle = dirHandleRef.current
     if (!handle) return
     const result = await openProject(handle)
-    await loadFolder(handle, result.status === 'ok' ? result.data : undefined)
+    if (result.status === 'corrupt') {
+      setCorruptError(result.error)
+      await loadFolder(handle)
+      return
+    }
+    setCorruptError(null)
+    await loadFolder(handle, result.data)
   }, [loadFolder])
 
   const handleOpenRecent = useCallback(
