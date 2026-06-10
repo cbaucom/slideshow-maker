@@ -77,7 +77,8 @@ function MediaSlideView({ entry }: { entry: RenderPlanEntry }) {
   // Compute Ken Burns transform (images only; null for videos).
   let kenBurnsStyle: React.CSSProperties = {}
   if (kenBurns) {
-    const progress = interpolate(frame, [0, durationInFrames], [0, 1], {
+    const lastFrame = Math.max(1, durationInFrames - 1)
+    const progress = interpolate(frame, [0, lastFrame], [0, 1], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     })

@@ -213,11 +213,33 @@ describe('plan — Ken Burns vectors', () => {
     expect(result.entries[2].kenBurns).not.toBeNull()
   })
 
+  it('Ken Burns alternation is based on photo index not global index (video interspersed)', () => {
+    // photo@0=zoom-in, video@1=null, photo@2=zoom-out (photo#1, not global#2)
+    const result = plan([IMG_A, VID, IMG_B], KB_ON)
+    const d0 = result.entries[0].kenBurns!
+    const d2 = result.entries[2].kenBurns!
+    const dir0 = d0.toScale > d0.fromScale ? 'zoom-in' : 'zoom-out'
+    const dir2 = d2.toScale > d2.fromScale ? 'zoom-in' : 'zoom-out'
+    expect(dir0).toBe('zoom-in')
+    expect(dir2).toBe('zoom-out')
+  })
+
   it('same slide index always produces same vector (deterministic)', () => {
     const r1 = plan([IMG_A, IMG_B], KB_ON)
     const r2 = plan([IMG_A, IMG_B], KB_ON)
     expect(r1.entries[0].kenBurns).toEqual(r2.entries[0].kenBurns)
     expect(r1.entries[1].kenBurns).toEqual(r2.entries[1].kenBurns)
+  })
+
+  it('all 4 photo presets have distinct pan vectors (no duplicate motion arcs)', () => {
+    const slides = [IMG_A, IMG_B, IMG_C, IMG_D]
+    const result = plan(slides, KB_ON)
+    const panKeys = result.entries.map(e => {
+      const kb = e.kenBurns!
+      return `${kb.fromX},${kb.fromY}->${kb.toX},${kb.toY}`
+    })
+    const unique = new Set(panKeys)
+    expect(unique.size).toBe(4)
   })
 })
 
