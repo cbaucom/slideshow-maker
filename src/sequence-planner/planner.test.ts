@@ -109,6 +109,28 @@ describe('plan — mediaMetadata duration override', () => {
   })
 })
 
+// --- Transition clamping (short slides) ---
+
+describe('plan — transition clamping for short slides', () => {
+  it('clamps dip-to-black (30f) to floor(videoFrames/2) when video is shorter than 2× transition', () => {
+    // 16-frame video: min(30, floor(90/2)=45, floor(16/2)=8) = 8
+    const short = makeSlide('v', 'video', 16)
+    const result = plan([IMG_90, short], DIP)
+
+    const [, e1] = result.entries
+    expect(e1.transitionIn?.durationInFrames).toBe(8)
+    expect(e1.startFrame).toBe(90 - 8)   // 82
+    expect(result.totalFrames).toBe(82 + 16)  // 98, never negative
+  })
+
+  it('cursor is never negative regardless of transition/duration ratio', () => {
+    const veryShort = makeSlide('v', 'video', 2)
+    const result = plan([IMG_90, veryShort], DIP)
+    for (const e of result.entries) expect(e.startFrame).toBeGreaterThanOrEqual(0)
+    expect(result.totalFrames).toBeGreaterThan(0)
+  })
+})
+
 // --- Property tests (table-driven) ---
 
 describe('plan — properties', () => {

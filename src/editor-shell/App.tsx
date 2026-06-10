@@ -198,10 +198,9 @@ export function App() {
     setCorruptError(null)
   }, [])
 
-  const includedSlides = filterIncluded(slides)
   const renderPlan = useMemo(
-    () => plan(includedSlides, globalSettings),
-    [includedSlides, globalSettings],
+    () => plan(filterIncluded(slides), globalSettings),
+    [slides, globalSettings],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
 
