@@ -1,3 +1,2 @@
-// Sequence Planner — stub; implemented in slice 5.
-// Future: (timeline, beatGrid, mediaMetadata) => RenderPlan
-export {}
+export { plan, TRANSITION_FRAMES } from './planner'
+export type { RenderPlan, RenderPlanEntry, TransitionSpec, MediaMetadata } from './types'

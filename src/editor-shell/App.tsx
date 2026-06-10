@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Player } from '@remotion/player'
 import type { MediaSlide } from '../timeline-core/types'
 import {
@@ -20,7 +20,8 @@ import {
   type RecentProject,
   SCHEMA_VERSION,
 } from '../project-store'
-import { SlideshowComposition, CROSSFADE_FRAMES } from '../composition'
+import { plan } from '../sequence-planner'
+import { SlideshowComposition } from '../composition'
 import { StoryboardGrid } from './StoryboardGrid'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
 import './App.css'
@@ -29,13 +30,6 @@ const FPS = 30
 const COMP_WIDTH = 1920
 const COMP_HEIGHT = 1080
 const AUTOSAVE_DELAY = 2000
-
-function computeTotalFrames(slides: MediaSlide[]): number {
-  if (slides.length === 0) return FPS
-  const sum = slides.reduce((acc, s) => acc + s.durationInFrames, 0)
-  const transitions = (slides.length - 1) * CROSSFADE_FRAMES
-  return Math.max(1, sum - transitions)
-}
 
 function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaSlide[] {
   const byFilename = new Map(enumerated.map((s) => [s.filename, s]))
@@ -205,7 +199,11 @@ export function App() {
   }, [])
 
   const includedSlides = filterIncluded(slides)
-  const totalFrames = computeTotalFrames(includedSlides)
+  const renderPlan = useMemo(
+    () => plan(includedSlides, globalSettings),
+    [includedSlides, globalSettings],
+  )
+  const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
 
   return (
     <div className="app">
@@ -244,7 +242,7 @@ export function App() {
             compositionWidth={COMP_WIDTH}
             compositionHeight={COMP_HEIGHT}
             fps={FPS}
-            inputProps={{ slides: includedSlides }}
+            inputProps={{ plan: renderPlan }}
             controls
             style={{ width: '100%', aspectRatio: `${COMP_WIDTH}/${COMP_HEIGHT}` }}
           />
