@@ -1,3 +1,6 @@
-// Project Store — stub; implemented in slice 2.
-// Future: File System Access API wrapper, slideshow.json read/write, autosave.
-export {}
+export { createFreshProject, openProject, saveProject } from './project-store'
+export type { DirHandle, OpenResult } from './project-store'
+export { addRecentProject, listRecentProjects, removeRecentProject, requestHandlePermission } from './recent-projects'
+export type { RecentProject } from './recent-projects'
+export { SCHEMA_VERSION, SLIDESHOW_FILE } from './schema'
+export type { SerializedSlide, SlideshowJson } from './schema'
