@@ -9,12 +9,17 @@ const IMAGE_DURATION_FRAMES = 3 * FPS // 3s at 30fps
 const MIN_VIDEO_FRAMES = 16
 
 async function getVideoDurationFrames(file: File): Promise<number> {
-  const input = new Input({
-    formats: ALL_FORMATS,
-    source: new BlobSource(file),
-  })
-  const seconds = await input.computeDuration()
-  return Math.max(MIN_VIDEO_FRAMES, Math.ceil(seconds * FPS))
+  try {
+    const input = new Input({
+      formats: ALL_FORMATS,
+      source: new BlobSource(file),
+    })
+    const seconds = await input.computeDuration()
+    return Math.max(MIN_VIDEO_FRAMES, Math.ceil(seconds * FPS))
+  } catch {
+    // Fall back to image duration if the video container can't be parsed.
+    return IMAGE_DURATION_FRAMES
+  }
 }
 
 export async function enumerateFolder(

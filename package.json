@@ -20,8 +20,14 @@
     "react-dom": "^19.2.6",
     "remotion": "^4.0.289"
   },
+  "pnpm": {
+    "overrides": {
+      "mediabunny": "^1.46.0"
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/cli": "^0.1.14",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
