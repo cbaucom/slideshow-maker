@@ -1,0 +1,7 @@
+overrides:
+  mediabunny: "^1.46.0"
+
+# Disable minimum-release-age supply-chain policy so freshly-published
+# packages (remotion, playwright-cli, etc.) don't block CI.
+settings:
+  minimumReleaseAge: 0
