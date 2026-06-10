@@ -1,6 +1,9 @@
+import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
 import type { MediaSlide } from '../timeline-core/types'
 import type { KenBurnsVector, MediaMetadata, RenderPlan, RenderPlanEntry, TransitionSpec } from './types'
+
+const FPS = 30
 
 export const TRANSITION_FRAMES: Record<TransitionType, number> = {
   crossfade: 15,
@@ -24,14 +27,28 @@ export function plan(
 ): RenderPlan {
   if (slides.length === 0) return { entries: [], totalFrames: 0 }
 
-  const transitionDur = TRANSITION_FRAMES[settings.transitionType]
+
+  function resolved(slide: MediaSlide) {
+    return resolve(settings, slide.overrides)
+  }
 
   function getDuration(slide: MediaSlide): number {
-    return mediaMetadata?.get(slide.filename)?.durationInFrames ?? slide.durationInFrames
+    const meta = mediaMetadata?.get(slide.filename)?.durationInFrames
+    if (meta !== undefined) return meta
+    // For images, honour a per-slide imageDurationSecs override.
+    if (slide.type === 'image' && slide.overrides?.imageDurationSecs !== undefined) {
+      return Math.round(resolved(slide).imageDurationSecs * FPS)
+    }
+    return slide.durationInFrames
   }
 
   function getFitMode(slide: MediaSlide): FitMode {
-    return slide.type === 'video' ? 'contain' : settings.fitMode
+    return slide.type === 'video' ? 'contain' : resolved(slide).fitMode
+  }
+
+  // Per-slide resolved transition duration (inbound = this slide's resolved type).
+  function getTransitionDur(slide: MediaSlide): number {
+    return TRANSITION_FRAMES[resolved(slide).transitionType]
   }
 
   // Pass 1: compute effective transition duration for each non-first slide.
@@ -41,7 +58,8 @@ export function plan(
     if (i === 0) return 0
     const prevDur = getDuration(slides[i - 1])
     const currDur = getDuration(slide)
-    return Math.min(transitionDur, Math.floor(prevDur / 2), Math.floor(currDur / 2))
+    const tDur = getTransitionDur(slide)
+    return Math.min(tDur, Math.floor(prevDur / 2), Math.floor(currDur / 2))
   })
 
   // Pass 2: build entries.
@@ -54,14 +72,15 @@ export function plan(
   for (let i = 0; i < slides.length; i++) {
     const slide = slides[i]
     const durationInFrames = getDuration(slide)
+    const slideResolved = resolved(slide)
 
     const transitionIn: TransitionSpec | undefined =
       i === 0
         ? undefined
-        : { type: settings.transitionType, durationInFrames: effectiveTrans[i] }
+        : { type: slideResolved.transitionType, durationInFrames: effectiveTrans[i] }
 
     const kenBurns: KenBurnsVector | null =
-      settings.kenBurns && slide.type !== 'video'
+      slideResolved.kenBurns && slide.type !== 'video'
         ? KB_PRESETS[photoIndex % KB_PRESETS.length]
         : null
 

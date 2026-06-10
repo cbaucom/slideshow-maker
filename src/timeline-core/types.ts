@@ -1,4 +1,5 @@
 import type { MediaType } from './media'
+import type { SlideOverrides } from './settings'
 
 export type { MediaType }
 
@@ -12,4 +13,6 @@ export type MediaSlide = {
   durationInFrames: number
   /** excluded from timeline but still in folder */
   excluded: boolean
+  /** per-slide setting overrides; absent means "use global defaults" */
+  overrides?: SlideOverrides
 }
