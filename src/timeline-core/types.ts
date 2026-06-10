@@ -16,3 +16,21 @@ export type MediaSlide = {
   /** per-slide setting overrides; absent means "use global defaults" */
   overrides?: SlideOverrides
 }
+
+export type TitleSlide = {
+  id: string
+  kind: 'title'
+  heading: string
+  subtext?: string
+  style: 'light' | 'dark'
+  /** duration in frames at 30 fps */
+  durationInFrames: number
+  excluded: boolean
+  overrides?: SlideOverrides
+}
+
+export type Slide = MediaSlide | TitleSlide
+
+export function isTitleSlide(s: Slide): s is TitleSlide {
+  return 'kind' in s && (s as TitleSlide).kind === 'title'
+}
