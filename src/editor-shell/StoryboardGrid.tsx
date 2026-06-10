@@ -1,15 +1,12 @@
 import { useRef } from 'react'
 import type { MediaSlide } from '../timeline-core/types'
-import type { GlobalSettings, SlideOverrides } from '../timeline-core/settings'
 
 type Props = {
   slides: MediaSlide[]
   selectedSlideId: string | null
-  globalSettings: GlobalSettings
   onReorder: (fromIndex: number, toIndex: number) => void
   onToggleExclude: (id: string) => void
   onSlideClick: (id: string) => void
-  onSlideOverride: (id: string, overrides: SlideOverrides | undefined) => void
 }
 
 function hasOverrides(slide: MediaSlide): boolean {

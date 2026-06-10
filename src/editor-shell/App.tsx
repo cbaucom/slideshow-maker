@@ -8,7 +8,7 @@ import {
   applyImageDuration,
   DEFAULT_GLOBAL_SETTINGS,
 } from '../timeline-core'
-import type { GlobalSettings, SlideOverrides } from '../timeline-core'
+import type { FitMode, GlobalSettings, SlideOverrides, TransitionType } from '../timeline-core'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import {
   openProject,
@@ -274,11 +274,9 @@ export function App() {
               <StoryboardGrid
                 slides={slides}
                 selectedSlideId={selectedSlideId}
-                globalSettings={globalSettings}
                 onReorder={handleReorder}
                 onToggleExclude={handleToggleExclude}
                 onSlideClick={handleSlideClick}
-                onSlideOverride={handleSlideOverride}
               />
             )}
           </aside>
@@ -314,9 +312,6 @@ export function App() {
     </div>
   )
 }
-
-// Inline slide settings dialog — kept in App.tsx to avoid extra file complexity.
-import type { FitMode, TransitionType } from '../timeline-core/settings'
 
 function SlideSettingsDialog({
   slide,
