@@ -9,10 +9,15 @@ type Props = {
 
 export function StoryboardGrid({ slides, onReorder, onToggleExclude }: Props) {
   const dragIndexRef = useRef<number | null>(null)
+  const included = slides.filter(s => !s.excluded).length
 
   return (
     <div className="storyboard-grid">
-      <p className="storyboard-count">{slides.length} media file{slides.length !== 1 ? 's' : ''}</p>
+      <p className="storyboard-count">
+        {included === slides.length
+          ? `${slides.length} media file${slides.length !== 1 ? 's' : ''}`
+          : `${included} / ${slides.length} included`}
+      </p>
       <ul className="storyboard-list">
         {slides.map((slide, index) => (
           <li
@@ -31,12 +36,21 @@ export function StoryboardGrid({ slides, onReorder, onToggleExclude }: Props) {
             onDragEnd={() => { dragIndexRef.current = null }}
           >
             <div className="storyboard-thumb-wrap">
-              <img
-                src={slide.blobUrl}
-                alt={slide.filename}
-                className="storyboard-thumb"
-                draggable={false}
-              />
+              {slide.type === 'video' ? (
+                <video
+                  src={slide.blobUrl}
+                  className="storyboard-thumb"
+                  muted
+                  draggable={false}
+                />
+              ) : (
+                <img
+                  src={slide.blobUrl}
+                  alt={slide.filename}
+                  className="storyboard-thumb"
+                  draggable={false}
+                />
+              )}
               {slide.type === 'video' && <span className="storyboard-badge">▶</span>}
               {slide.excluded && <div className="storyboard-excluded-overlay">excluded</div>}
             </div>
