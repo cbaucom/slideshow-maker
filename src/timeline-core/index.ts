@@ -1,3 +1,5 @@
 export { isSupportedMedia, getMediaType, sortByFilename } from './media'
 export { moveSlide, toggleExcluded, filterIncluded } from './timeline'
+export { resolve, applyImageDuration, DEFAULT_GLOBAL_SETTINGS } from './settings'
+export type { GlobalSettings, SlideOverrides, ResolvedSlideSettings, TransitionType, FitMode } from './settings'
 export type { MediaSlide, MediaType } from './types'

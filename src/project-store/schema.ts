@@ -1,3 +1,5 @@
+import type { GlobalSettings } from '../timeline-core/settings'
+
 export const SCHEMA_VERSION = 1
 export const SLIDESHOW_FILE = 'slideshow.json'
 
@@ -11,6 +13,7 @@ export type SerializedSlide = {
 
 export type SlideshowJson = {
   schemaVersion: number
+  globalSettings?: GlobalSettings
   slides: SerializedSlide[]
 }
 
