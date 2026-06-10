@@ -35,22 +35,25 @@ If an issue number was passed as an argument, use it. Otherwise:
 - Follow the module boundaries in the PRD: decisions live in pure modules; the Composition and Editor Shell stay thin.
 - Keep render paths deterministic: no wall-clock time or unseeded randomness in anything the Composition consumes.
 - No live network or real filesystem in tests.
+- **Commit as you go** in small logical commits on the local branch. Do NOT push yet.
 
 ## 4. VERIFY
 
-- `npm run test` and `npm run build` (and `npm run lint` if configured) must pass.
+- `pnpm test` and `pnpm build` (and `pnpm lint` if configured) must pass.
 - Walk each acceptance criterion and confirm it is satisfied. If one cannot be met, say so in the PR rather than silently skipping it.
 - **UI smoke check** (only for slices touching the Editor Shell or player UI): load the `playwright-cli` skill, start the dev server, and drive the browser through each UI-facing acceptance criterion — click, type, snapshot. Capture a screenshot of the end state for the PR. Skip this step entirely for pure-module slices.
 
 ## 5. REVIEW
 
-- Invoke the `code-reviewer` agent with the branch diff and the issue.
+> **Gate: do not push or create a PR until this step produces an APPROVE with zero blocking findings.**
+
+- Invoke the `code-review` skill with `--effort high` against the local branch diff.
 - Fix all blocking findings and re-run VERIFY. Iterate until the decision is APPROVE.
 - Include the final review verdict in the PR body.
 
-## 6. PULL REQUEST
+## 6. PUSH + PULL REQUEST
 
-- Commit in small logical commits.
+- `git push -u origin <branch>` — first and only push, after review is APPROVED.
 - `gh pr create` with:
   - Title: `<issue title> (#<issue number>)`
   - Body: `Closes #<issue number>`, a brief summary of the approach, the acceptance-criteria checklist with each item checked or explained, and any follow-ups discovered.

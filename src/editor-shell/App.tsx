@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Player } from '@remotion/player'
 import type { MediaSlide } from '../timeline-core/types'
-import { moveSlide, toggleExcluded, filterIncluded } from '../timeline-core'
+import {
+  moveSlide,
+  toggleExcluded,
+  filterIncluded,
+  applyImageDuration,
+  DEFAULT_GLOBAL_SETTINGS,
+} from '../timeline-core'
+import type { GlobalSettings } from '../timeline-core'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import {
   openProject,
@@ -15,6 +22,7 @@ import {
 } from '../project-store'
 import { SlideshowComposition, CROSSFADE_FRAMES } from '../composition'
 import { StoryboardGrid } from './StoryboardGrid'
+import { GlobalSettingsPanel } from './GlobalSettingsPanel'
 import './App.css'
 
 const FPS = 30
@@ -29,8 +37,6 @@ function computeTotalFrames(slides: MediaSlide[]): number {
   return Math.max(1, sum - transitions)
 }
 
-// Merge saved order/exclusions from slideshow.json with fresh enumerated slides.
-// Known files keep their saved order and excluded flag; new files append at end.
 function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaSlide[] {
   const byFilename = new Map(enumerated.map((s) => [s.filename, s]))
   const ordered: MediaSlide[] = []
@@ -45,9 +51,10 @@ function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaS
   return ordered
 }
 
-function slidesToJson(slides: MediaSlide[]): SlideshowJson {
+function slidesToJson(slides: MediaSlide[], globalSettings: GlobalSettings): SlideshowJson {
   return {
     schemaVersion: SCHEMA_VERSION,
+    globalSettings,
     slides: slides.map(({ id, filename, type, durationInFrames, excluded }) => ({
       id,
       filename,
@@ -60,6 +67,7 @@ function slidesToJson(slides: MediaSlide[]): SlideshowJson {
 
 export function App() {
   const [slides, setSlides] = useState<MediaSlide[]>([])
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
@@ -88,14 +96,15 @@ export function App() {
     }
   }, [])
 
+  // Autosave on slides or settings change
   useEffect(() => {
     const handle = dirHandleRef.current
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(slides)).catch(console.error)
+      saveProject(handle, slidesToJson(slides, globalSettings)).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [slides])
+  }, [slides, globalSettings])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -103,8 +112,18 @@ export function App() {
       setError(null)
       try {
         const enumerated = await enumerateFolder(handle)
-        const finalSlides = savedData ? reconcileSlides(enumerated, savedData) : enumerated
+        const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
+        let finalSlides = savedData ? reconcileSlides(enumerated, savedData) : enumerated
+        // Apply global duration only to slides not already in savedData (new files added to folder).
+        // Saved slides already carry the correct durationInFrames from when they were last written.
+        const savedFilenames = new Set(savedData?.slides.map(s => s.filename) ?? [])
+        finalSlides = finalSlides.map(s =>
+          s.type === 'image' && !savedFilenames.has(s.filename)
+            ? { ...s, durationInFrames: Math.round(restoredSettings.imageDurationSecs * FPS) }
+            : s
+        )
         pendingRevokeRef.current = latestSlidesRef.current
+        setGlobalSettings(restoredSettings)
         setSlides(finalSlides)
         setFolderOpen(true)
       } catch (e) {
@@ -176,6 +195,11 @@ export function App() {
     setSlides(prev => toggleExcluded(prev, id))
   }, [])
 
+  const handleSettingsChange = useCallback((updated: GlobalSettings) => {
+    setGlobalSettings(updated)
+    setSlides(prev => applyImageDuration(prev, updated.imageDurationSecs))
+  }, [])
+
   const handleStartFresh = useCallback(() => {
     setCorruptError(null)
   }, [])
@@ -226,17 +250,23 @@ export function App() {
           />
         </div>
 
-        {slides.length > 0 && (
-          <aside className="thumbnail-panel">
-            <StoryboardGrid
-              slides={slides}
-              onReorder={handleReorder}
-              onToggleExclude={handleToggleExclude}
+        {folderOpen && (
+          <aside className="sidebar">
+            <GlobalSettingsPanel
+              settings={globalSettings}
+              onChange={handleSettingsChange}
             />
+            {slides.length > 0 && (
+              <StoryboardGrid
+                slides={slides}
+                onReorder={handleReorder}
+                onToggleExclude={handleToggleExclude}
+              />
+            )}
           </aside>
         )}
 
-        {slides.length === 0 && !loading && !folderOpen && (
+        {!folderOpen && !loading && (
           <div className="empty-state">
             <p>Pick a folder containing photos and videos to get started.</p>
             {recentProjects.length > 0 && (
