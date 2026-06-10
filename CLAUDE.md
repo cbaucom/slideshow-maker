@@ -1,0 +1,21 @@
+# Slideshow Creator
+
+Local-first web app: hand-curated slideshows with automatic, Apple-Memories-grade presentation. The spec is **issue #1 (the PRD)** — read it before implementing anything. Approved work breakdown: `.claude/plans/issue-breakdown.md`.
+
+## Workflow
+
+- Work happens one issue at a time via `/work-next-issue` → one small PR per issue, `Closes #N` in the body.
+- Issues labeled `ready-for-agent` are grabbable when their blockers are closed; `hitl` issues need the owner.
+- Creating issues from a plan: use the `to-issues` skill.
+
+## Architecture (non-negotiable)
+
+- **Decisions live in pure modules**: Timeline Core (domain + settings cascade), Beat Grid (audio analysis math), Sequence Planner (`(timeline, beatGrid, mediaMetadata) → RenderPlan`). Everything downstream executes the RenderPlan and decides nothing.
+- **Composition (Remotion) and Editor Shell stay thin.** Load the `remotion-best-practices` skill before touching composition/player code.
+- **Determinism**: no wall-clock time or unseeded randomness anywhere the Composition consumes — export depends on it. Variation derives from slide index/seed in the RenderPlan.
+- **Project = folder**: media referenced by filename; all state in `slideshow.json` (schema-versioned) written into the user's folder via the Project Store. No backend, ever.
+- **Settings are a cascade** (global → per-slide). Themes and "Plain mode" are settings data, never special-cased code.
+
+## Stack & testing
+
+Vite + React + TypeScript, `@remotion/player`, Web Audio API, File System Access API (Chromium), Jamendo API, Mediabunny for media metadata. Tests: Vitest, colocated per module. Pure modules get table-driven/golden/property tests; Project Store against in-memory FS fakes; Jamendo client against mocked responses. No live network or real filesystem in tests. `npm run test` and `npm run build` must pass before any PR.
