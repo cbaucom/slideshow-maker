@@ -1,5 +1,21 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { TitleSlide } from '../timeline-core/types'
 import type { SlideOverrides, TransitionType } from '../timeline-core'
+import { OverrideField } from './OverrideField'
 
 const FPS = 30
 
@@ -24,95 +40,94 @@ export function TitleSlideDialog({ onClose, onOverride, onUpdate, slide }: Props
   }
 
   return (
-    <div
-      className="slide-dialog-backdrop"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Title slide settings"
-    >
-      <div className="slide-dialog">
-        <div className="slide-dialog-header">
-          <h3 className="slide-dialog-title">Title Slide</h3>
-          <button className="slide-dialog-close" onClick={onClose} aria-label="Close">×</button>
-        </div>
+    <Dialog open onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Title Slide</DialogTitle>
+          <DialogDescription className="sr-only">Title slide settings</DialogDescription>
+        </DialogHeader>
 
-        <div className="override-row">
-          <span className="override-label">Heading</span>
-          <input
-            type="text"
-            className="settings-input"
-            value={slide.heading}
-            onChange={e => onUpdate(slide.id, { heading: e.target.value })}
-            placeholder="Enter heading"
-            style={{ flex: 1 }}
-          />
-        </div>
+        <div className="flex flex-col gap-3">
+          <OverrideField label="Heading" htmlFor={`${slide.id}-heading`}>
+            <Input
+              id={`${slide.id}-heading`}
+              type="text"
+              className="h-7 flex-1"
+              value={slide.heading}
+              onChange={e => onUpdate(slide.id, { heading: e.target.value })}
+              placeholder="Enter heading"
+            />
+          </OverrideField>
 
-        <div className="override-row">
-          <span className="override-label">Subtext</span>
-          <input
-            type="text"
-            className="settings-input"
-            value={slide.subtext ?? ''}
-            onChange={e => onUpdate(slide.id, { subtext: e.target.value || undefined })}
-            placeholder="Optional subtext"
-            style={{ flex: 1 }}
-          />
-        </div>
+          <OverrideField label="Subtext" htmlFor={`${slide.id}-subtext`}>
+            <Input
+              id={`${slide.id}-subtext`}
+              type="text"
+              className="h-7 flex-1"
+              value={slide.subtext ?? ''}
+              onChange={e => onUpdate(slide.id, { subtext: e.target.value || undefined })}
+              placeholder="Optional subtext"
+            />
+          </OverrideField>
 
-        <div className="override-row">
-          <span className="override-label">Style</span>
-          <select
-            className="settings-select"
-            value={slide.style}
-            onChange={e => onUpdate(slide.id, { style: e.target.value as 'light' | 'dark' })}
+          <OverrideField label="Style" htmlFor={`${slide.id}-style`}>
+            <Select
+              value={slide.style}
+              onValueChange={value => onUpdate(slide.id, { style: value as 'light' | 'dark' })}
+            >
+              <SelectTrigger id={`${slide.id}-style`} size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="light">Light</SelectItem>
+              </SelectContent>
+            </Select>
+          </OverrideField>
+
+          <OverrideField label="Duration" htmlFor={`${slide.id}-duration`}>
+            <Input
+              id={`${slide.id}-duration`}
+              type="number"
+              className="h-7 w-16 text-right"
+              min={1}
+              max={30}
+              step={0.5}
+              value={slide.durationInFrames / FPS}
+              onChange={e => {
+                const v = parseFloat(e.target.value)
+                if (!isNaN(v) && v >= 1 && v <= 30) onUpdate(slide.id, { durationInFrames: Math.round(v * FPS) })
+              }}
+            />
+            <span className="text-xs text-muted-foreground">s</span>
+          </OverrideField>
+
+          <OverrideField
+            label="Transition"
+            htmlFor={`${slide.id}-transition`}
+            isOverridden={ov.transitionType !== undefined}
+            onReset={clearTransition}
           >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
+            <Select
+              value={ov.transitionType ?? 'global'}
+              onValueChange={value => {
+                if (value === 'global') clearTransition()
+                else setTransition(value as TransitionType)
+              }}
+            >
+              <SelectTrigger id={`${slide.id}-transition`} size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global">Global default</SelectItem>
+                <SelectItem value="crossfade">Crossfade</SelectItem>
+                <SelectItem value="dip-to-black">Dip to black</SelectItem>
+                <SelectItem value="cut">Cut</SelectItem>
+              </SelectContent>
+            </Select>
+          </OverrideField>
         </div>
-
-        <div className="override-row">
-          <span className="override-label">Duration</span>
-          <input
-            type="number"
-            className="settings-input"
-            min={1}
-            max={30}
-            step={0.5}
-            value={slide.durationInFrames / FPS}
-            onChange={e => {
-              const v = parseFloat(e.target.value)
-              if (!isNaN(v) && v >= 1 && v <= 30) onUpdate(slide.id, { durationInFrames: Math.round(v * FPS) })
-            }}
-          />
-          <span className="settings-unit">s</span>
-        </div>
-
-        <div className="override-row">
-          <span className="override-label">Transition</span>
-          <select
-            className="settings-select"
-            value={ov.transitionType ?? 'global'}
-            onChange={e => {
-              const v = e.target.value
-              if (v === 'global') clearTransition()
-              else setTransition(v as TransitionType)
-            }}
-          >
-            <option value="global">Global default</option>
-            <option value="crossfade">Crossfade</option>
-            <option value="dip-to-black">Dip to black</option>
-            <option value="cut">Cut</option>
-          </select>
-          {ov.transitionType !== undefined ? (
-            <button className="override-reset" onClick={clearTransition} title="Reset to global">↩</button>
-          ) : null}
-        </div>
-
-        <div className="slide-dialog-footer" />
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

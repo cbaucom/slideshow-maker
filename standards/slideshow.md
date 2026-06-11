@@ -13,6 +13,8 @@ src/sequence-planner/  — (timeline, beatGrid, metadata) → RenderPlan
 src/project-store/     — File System Access API, slideshow.json, autosave
 src/composition/       — thin Remotion layer, executes RenderPlan only
 src/editor-shell/      — storyboard, settings panels, player host
+src/components/ui/     — shadcn/ui primitives (generated, owned by us)
+src/lib/               — shared helpers (`cn`)
 ```
 
 **Boundaries:**
@@ -41,12 +43,19 @@ src/editor-shell/      — storyboard, settings panels, player host
 
 ## React (Vite SPA)
 
-- One component per file in `editor-shell/` and `composition/`.
+- One component per file in `editor-shell/` and `composition/`. (`src/components/ui/` is the exception — shadcn files ship multiple related exports.)
 - Props type in the same file (`type Props = { ... }`).
-- Styles in colocated `.css` files — not Tailwind.
 - App-level state with callback props is fine at current scale; lift to providers when siblings outside a subtree need the same state (see `composition-patterns` skill).
 - Explicit variant components over boolean props (`TitleSlideDialog` / `SlideSettingsDialog`, not one dialog with `isTitle`).
-- Modals: `role="dialog"`, `aria-modal`, labelled controls.
+- Modals use the shadcn `Dialog` (Radix provides `role="dialog"`/`aria-modal` and focus trapping); controls still need labels (`Label htmlFor` / `aria-label`).
+
+**Styling:**
+
+- Editor-shell styling is Tailwind utility classes plus shadcn/ui primitives from `src/components/ui/` (imported via the `@/` alias; config in `components.json`, theme variables in `src/index.css`).
+- shadcn files are generated-but-owned: edit deliberately, keep diffs reviewable. They are exempt from `react-refresh/only-export-components` (see `eslint.config.js`).
+- Data-driven values (e.g. title-slide thumb colors, player dimensions) use inline `style` — never string-built class names.
+- Plain colocated `.css` only when utilities can't express it (complex keyframes); none currently exist.
+- `src/composition/` uses inline styles only — never Tailwind classes. Rendered output must depend only on the RenderPlan, not on editor stylesheets.
 
 **Skills for UI work:**
 

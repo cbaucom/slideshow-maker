@@ -1,5 +1,25 @@
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import type { MediaSlide } from '../timeline-core/types'
 import type { FitMode, GlobalSettings, SlideOverrides, TransitionType } from '../timeline-core'
+import { OverrideField } from './OverrideField'
 
 type Props = {
   globalSettings: GlobalSettings
@@ -28,193 +48,202 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
   }
 
   return (
-    <div
-      className="slide-dialog-backdrop"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Settings for ${slide.filename}`}
-    >
-      <div className="slide-dialog">
-        <div className="slide-dialog-header">
-          <h3 className="slide-dialog-title">{slide.filename}</h3>
-          <button className="slide-dialog-close" onClick={onClose} aria-label="Close">×</button>
-        </div>
+    <Dialog open onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="truncate pr-6">{slide.filename}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Per-slide setting overrides for {slide.filename}
+          </DialogDescription>
+        </DialogHeader>
 
-        {slide.type === 'image' ? (
-          <div className="override-row">
-            <span className="override-label">Duration</span>
-            <input
-              type="number"
-              className="settings-input"
-              min={1}
-              max={30}
-              step={0.5}
-              value={ov.imageDurationSecs ?? globalSettings.imageDurationSecs}
-              onChange={e => {
-                const v = parseFloat(e.target.value)
-                if (!isNaN(v) && v >= 1 && v <= 30) setField('imageDurationSecs', v)
+        <div className="flex flex-col gap-3">
+          {slide.type === 'image' && (
+            <OverrideField
+              label="Duration"
+              htmlFor={`${slide.id}-duration`}
+              isOverridden={ov.imageDurationSecs !== undefined}
+              defaultHint="global"
+              onReset={() => clearField('imageDurationSecs')}
+            >
+              <Input
+                id={`${slide.id}-duration`}
+                type="number"
+                className="h-7 w-16 text-right"
+                min={1}
+                max={30}
+                step={0.5}
+                value={ov.imageDurationSecs ?? globalSettings.imageDurationSecs}
+                onChange={e => {
+                  const v = parseFloat(e.target.value)
+                  if (!isNaN(v) && v >= 1 && v <= 30) setField('imageDurationSecs', v)
+                }}
+              />
+              <span className="text-xs text-muted-foreground">s</span>
+            </OverrideField>
+          )}
+
+          <OverrideField
+            label="Transition"
+            htmlFor={`${slide.id}-transition`}
+            isOverridden={ov.transitionType !== undefined}
+            defaultHint="global"
+            onReset={() => clearField('transitionType')}
+          >
+            <Select
+              value={ov.transitionType ?? globalSettings.transitionType}
+              onValueChange={value => setField('transitionType', value as TransitionType)}
+            >
+              <SelectTrigger id={`${slide.id}-transition`} size="sm" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="crossfade">Crossfade</SelectItem>
+                <SelectItem value="dip-to-black">Dip to black</SelectItem>
+                <SelectItem value="cut">Cut</SelectItem>
+              </SelectContent>
+            </Select>
+          </OverrideField>
+
+          {slide.type === 'image' && (
+            <OverrideField
+              label="Ken Burns"
+              htmlFor={`${slide.id}-ken-burns`}
+              isOverridden={ov.kenBurns !== undefined}
+              defaultHint="global"
+              onReset={() => clearField('kenBurns')}
+            >
+              <Switch
+                id={`${slide.id}-ken-burns`}
+                checked={ov.kenBurns ?? globalSettings.kenBurns}
+                onCheckedChange={checked => setField('kenBurns', checked)}
+              />
+            </OverrideField>
+          )}
+
+          {slide.type === 'image' && (
+            <OverrideField
+              label="Fit mode"
+              htmlFor={`${slide.id}-fit-mode`}
+              isOverridden={ov.fitMode !== undefined}
+              defaultHint="global"
+              onReset={() => clearField('fitMode')}
+            >
+              <Select
+                value={ov.fitMode ?? globalSettings.fitMode}
+                onValueChange={value => setField('fitMode', value as FitMode)}
+              >
+                <SelectTrigger id={`${slide.id}-fit-mode`} size="sm" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cover">Cover (crop)</SelectItem>
+                  <SelectItem value="contain">Letterbox</SelectItem>
+                  <SelectItem value="blur-fill">Blur fill</SelectItem>
+                </SelectContent>
+              </Select>
+            </OverrideField>
+          )}
+
+          <OverrideField
+            label="Mute music"
+            htmlFor={`${slide.id}-mute-music`}
+            isOverridden={ov.muteMusic !== undefined}
+            defaultHint="off"
+            onReset={() => clearField('muteMusic')}
+          >
+            <Switch
+              id={`${slide.id}-mute-music`}
+              checked={ov.muteMusic ?? false}
+              onCheckedChange={checked => {
+                if (checked) {
+                  setField('muteMusic', true)
+                  return
+                }
+                clearField('muteMusic')
               }}
             />
-            <span className="settings-unit">s</span>
-            {ov.imageDurationSecs !== undefined
-              ? <button className="override-reset" onClick={() => clearField('imageDurationSecs')} title="Reset to global">↩</button>
-              : <span className="override-default">global</span>
-            }
-          </div>
-        ) : null}
+          </OverrideField>
 
-        <div className="override-row">
-          <span className="override-label">Transition</span>
-          <select
-            className="settings-select"
-            value={ov.transitionType ?? globalSettings.transitionType}
-            onChange={e => setField('transitionType', e.target.value as TransitionType)}
+          <OverrideField
+            label="Music level"
+            htmlFor={`${slide.id}-music-volume`}
+            isOverridden={ov.musicVolume !== undefined}
+            defaultHint="auto"
+            onReset={() => clearField('musicVolume')}
           >
-            <option value="crossfade">Crossfade</option>
-            <option value="dip-to-black">Dip to black</option>
-            <option value="cut">Cut</option>
-          </select>
-          {ov.transitionType !== undefined
-            ? <button className="override-reset" onClick={() => clearField('transitionType')} title="Reset to global">↩</button>
-            : <span className="override-default">global</span>
-          }
-        </div>
-
-        {slide.type === 'image' ? (
-          <div className="override-row">
-            <span className="override-label">Ken Burns</span>
-            <input
-              type="checkbox"
-              checked={ov.kenBurns ?? globalSettings.kenBurns}
-              onChange={e => setField('kenBurns', e.target.checked)}
+            <Slider
+              id={`${slide.id}-music-volume`}
+              aria-label="Music level"
+              disabled={ov.muteMusic === true}
+              min={0}
+              max={100}
+              step={5}
+              value={[Math.round((ov.musicVolume ?? 1) * 100)]}
+              onValueChange={([value]) => setField('musicVolume', value / 100)}
+              className="flex-1"
             />
-            {ov.kenBurns !== undefined
-              ? <button className="override-reset" onClick={() => clearField('kenBurns')} title="Reset to global">↩</button>
-              : <span className="override-default">global</span>
-            }
-          </div>
-        ) : null}
+            <span className="w-9 shrink-0 text-right text-xs text-muted-foreground">
+              {Math.round((ov.musicVolume ?? 1) * 100)}%
+            </span>
+          </OverrideField>
 
-        {slide.type === 'image' ? (
-          <div className="override-row">
-            <span className="override-label">Fit mode</span>
-            <select
-              className="settings-select"
-              value={ov.fitMode ?? globalSettings.fitMode}
-              onChange={e => setField('fitMode', e.target.value as FitMode)}
-            >
-              <option value="cover">Cover (crop)</option>
-              <option value="contain">Letterbox</option>
-              <option value="blur-fill">Blur fill</option>
-            </select>
-            {ov.fitMode !== undefined
-              ? <button className="override-reset" onClick={() => clearField('fitMode')} title="Reset to global">↩</button>
-              : <span className="override-default">global</span>
-            }
-          </div>
-        ) : null}
+          {slide.type === 'video' && (
+            <>
+              <OverrideField
+                label="Mute video audio"
+                htmlFor={`${slide.id}-mute-video-audio`}
+                isOverridden={ov.muteVideoAudio !== undefined}
+                defaultHint="off"
+                onReset={() => clearField('muteVideoAudio')}
+              >
+                <Switch
+                  id={`${slide.id}-mute-video-audio`}
+                  checked={ov.muteVideoAudio ?? false}
+                  onCheckedChange={checked => {
+                    if (checked) {
+                      setField('muteVideoAudio', true)
+                      return
+                    }
+                    clearField('muteVideoAudio')
+                  }}
+                />
+              </OverrideField>
 
-        <div className="override-row">
-          <label className="override-label" htmlFor={`${slide.id}-mute-music`}>Mute music</label>
-          <input
-            checked={ov.muteMusic ?? false}
-            id={`${slide.id}-mute-music`}
-            onChange={e => {
-              if (e.target.checked) {
-                setField('muteMusic', true)
-                return
-              }
-              clearField('muteMusic')
-            }}
-            type="checkbox"
-          />
-          {ov.muteMusic !== undefined
-            ? <button className="override-reset" onClick={() => clearField('muteMusic')} title="Reset to global">↩</button>
-            : <span className="override-default">off</span>
-          }
+              <OverrideField
+                label="Video level"
+                htmlFor={`${slide.id}-video-volume`}
+                isOverridden={ov.videoVolume !== undefined}
+                defaultHint="100%"
+                onReset={() => clearField('videoVolume')}
+              >
+                <Slider
+                  id={`${slide.id}-video-volume`}
+                  aria-label="Video level"
+                  disabled={ov.muteVideoAudio === true}
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[Math.round((ov.videoVolume ?? 1) * 100)]}
+                  onValueChange={([value]) => setField('videoVolume', value / 100)}
+                  className="flex-1"
+                />
+                <span className="w-9 shrink-0 text-right text-xs text-muted-foreground">
+                  {Math.round((ov.videoVolume ?? 1) * 100)}%
+                </span>
+              </OverrideField>
+            </>
+          )}
         </div>
 
-        <div className="override-row">
-          <label className="override-label" htmlFor={`${slide.id}-music-volume`}>Music level</label>
-          <input
-            className="settings-input"
-            disabled={ov.muteMusic === true}
-            id={`${slide.id}-music-volume`}
-            max={100}
-            min={0}
-            onChange={e => {
-              const value = Number(e.target.value) / 100
-              if (Number.isNaN(value)) return
-              setField('musicVolume', value)
-            }}
-            step={5}
-            type="range"
-            value={Math.round((ov.musicVolume ?? 1) * 100)}
-          />
-          <span className="settings-unit">{Math.round((ov.musicVolume ?? 1) * 100)}%</span>
-          {ov.musicVolume !== undefined
-            ? <button className="override-reset" onClick={() => clearField('musicVolume')} title="Reset to global">↩</button>
-            : <span className="override-default">auto</span>
-          }
-        </div>
-
-        {slide.type === 'video' ? (
-          <>
-            <div className="override-row">
-              <label className="override-label" htmlFor={`${slide.id}-mute-video-audio`}>Mute video audio</label>
-              <input
-                checked={ov.muteVideoAudio ?? false}
-                id={`${slide.id}-mute-video-audio`}
-                onChange={e => {
-                  if (e.target.checked) {
-                    setField('muteVideoAudio', true)
-                    return
-                  }
-                  clearField('muteVideoAudio')
-                }}
-                type="checkbox"
-              />
-              {ov.muteVideoAudio !== undefined
-                ? <button className="override-reset" onClick={() => clearField('muteVideoAudio')} title="Reset to global">↩</button>
-                : <span className="override-default">off</span>
-              }
-            </div>
-
-            <div className="override-row">
-              <label className="override-label" htmlFor={`${slide.id}-video-volume`}>Video level</label>
-              <input
-                className="settings-input"
-                disabled={ov.muteVideoAudio === true}
-                id={`${slide.id}-video-volume`}
-                max={100}
-                min={0}
-                onChange={e => {
-                  const value = Number(e.target.value) / 100
-                  if (Number.isNaN(value)) return
-                  setField('videoVolume', value)
-                }}
-                step={5}
-                type="range"
-                value={Math.round((ov.videoVolume ?? 1) * 100)}
-              />
-              <span className="settings-unit">{Math.round((ov.videoVolume ?? 1) * 100)}%</span>
-              {ov.videoVolume !== undefined
-                ? <button className="override-reset" onClick={() => clearField('videoVolume')} title="Reset to global">↩</button>
-                : <span className="override-default">100%</span>
-              }
-            </div>
-          </>
-        ) : null}
-
-        <div className="slide-dialog-footer">
-          {hasOverrides ? (
-            <button className="override-reset-all" onClick={resetAll}>
+        {hasOverrides && (
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={resetAll}>
               Reset all to global defaults
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </div>
+            </Button>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

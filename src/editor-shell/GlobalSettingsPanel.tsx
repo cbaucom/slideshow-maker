@@ -1,3 +1,14 @@
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { GlobalSettings, TransitionType, FitMode, ThemeName } from '../timeline-core/settings'
 
 const THEME_LABELS: Record<ThemeName, string> = {
@@ -21,76 +32,89 @@ export function GlobalSettingsPanel({ settings, onChange, onThemeChange, themeNa
   }
 
   return (
-    <div className="settings-panel">
-      <h2 className="settings-title">Settings</h2>
-
-      <div className="settings-row theme-row">
-        <span className="settings-label">Theme</span>
-        <div className="theme-buttons">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">Theme</Label>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          value={themeName ?? ''}
+          onValueChange={value => {
+            if (value) onThemeChange(value as ThemeName)
+          }}
+        >
           {THEME_NAMES.map(name => (
-            <button
-              key={name}
-              className={`theme-btn${themeName === name ? ' theme-btn--active' : ''}`}
-              onClick={() => onThemeChange(name)}
-              type="button"
-            >
+            <ToggleGroupItem key={name} value={name} className="flex-1 text-xs">
               {THEME_LABELS[name]}
-            </button>
+            </ToggleGroupItem>
           ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="image-duration" className="text-xs">Image duration</Label>
+        <div className="flex items-center gap-1.5">
+          <Input
+            id="image-duration"
+            type="number"
+            className="h-7 w-16 text-right"
+            min={1}
+            max={30}
+            step={0.5}
+            value={settings.imageDurationSecs}
+            onChange={e => {
+              const v = parseFloat(e.target.value)
+              if (!isNaN(v) && v >= 1 && v <= 30) set('imageDurationSecs', v)
+            }}
+          />
+          <span className="text-xs text-muted-foreground">s</span>
         </div>
       </div>
 
-      <label className="settings-row">
-        <span className="settings-label">Image duration</span>
-        <input
-          type="number"
-          className="settings-input"
-          min={1}
-          max={30}
-          step={0.5}
-          value={settings.imageDurationSecs}
-          onChange={e => {
-            const v = parseFloat(e.target.value)
-            if (!isNaN(v) && v >= 1 && v <= 30) set('imageDurationSecs', v)
-          }}
-        />
-        <span className="settings-unit">s</span>
-      </label>
-
-      <label className="settings-row">
-        <span className="settings-label">Transition</span>
-        <select
-          className="settings-select"
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="global-transition" className="text-xs">Transition</Label>
+        <Select
           value={settings.transitionType}
-          onChange={e => set('transitionType', e.target.value as TransitionType)}
+          onValueChange={value => set('transitionType', value as TransitionType)}
         >
-          <option value="crossfade">Crossfade</option>
-          <option value="dip-to-black">Dip to black</option>
-          <option value="cut">Cut</option>
-        </select>
-      </label>
+          <SelectTrigger id="global-transition" size="sm" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="crossfade">Crossfade</SelectItem>
+            <SelectItem value="dip-to-black">Dip to black</SelectItem>
+            <SelectItem value="cut">Cut</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      <label className="settings-row">
-        <span className="settings-label">Ken Burns</span>
-        <input
-          type="checkbox"
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="global-ken-burns" className="text-xs">Ken Burns</Label>
+        <Switch
+          id="global-ken-burns"
           checked={settings.kenBurns}
-          onChange={e => set('kenBurns', e.target.checked)}
+          onCheckedChange={checked => set('kenBurns', checked)}
         />
-      </label>
+      </div>
 
-      <label className="settings-row">
-        <span className="settings-label">Fit mode</span>
-        <select
-          className="settings-select"
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="global-fit-mode" className="text-xs">Fit mode</Label>
+        <Select
           value={settings.fitMode}
-          onChange={e => set('fitMode', e.target.value as FitMode)}
+          onValueChange={value => set('fitMode', value as FitMode)}
         >
-          <option value="cover">Cover (crop)</option>
-          <option value="contain">Letterbox</option>
-          <option value="blur-fill">Blur fill</option>
-        </select>
-      </label>
+          <SelectTrigger id="global-fit-mode" size="sm" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cover">Cover (crop)</SelectItem>
+            <SelectItem value="contain">Letterbox</SelectItem>
+            <SelectItem value="blur-fill">Blur fill</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   )
 }
