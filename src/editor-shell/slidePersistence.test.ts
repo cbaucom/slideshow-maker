@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
 import type { MediaSlide } from '../timeline-core/types'
 import { SCHEMA_VERSION } from '../project-store'
+import type { JamendoAttribution } from '../jamendo/types'
 import { slidesToJson } from './slidePersistence'
 
 function makeSlide(filename: string): MediaSlide {
@@ -35,5 +36,21 @@ describe('slidesToJson', () => {
   it('omits themeName when null', () => {
     const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, null)
     expect(json.themeName).toBeUndefined()
+  })
+
+  it('includes soundtrackAttribution when provided', () => {
+    const attribution: JamendoAttribution = {
+      jamendoId: '123',
+      name: 'Great Track',
+      artist: 'Cool Artist',
+      licenseUrl: 'https://creativecommons.org/licenses/by/3.0/',
+    }
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3', null, attribution)
+    expect(json.soundtrackAttribution).toEqual(attribution)
+  })
+
+  it('omits soundtrackAttribution when null', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3', null, null)
+    expect(json.soundtrackAttribution).toBeUndefined()
   })
 })

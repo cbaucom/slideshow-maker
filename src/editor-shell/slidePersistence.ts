@@ -2,6 +2,7 @@ import type { MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import type { GlobalSettings, ThemeName } from '../timeline-core'
 import { SCHEMA_VERSION, type SlideshowJson } from '../project-store'
+import type { JamendoAttribution } from '../jamendo/types'
 
 export function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): Slide[] {
   const byFilename = new Map(enumerated.map((slide) => [slide.filename, slide]))
@@ -32,12 +33,14 @@ export function slidesToJson(
   slides: Slide[],
   soundtrackFilename?: string | null,
   themeName?: ThemeName | null,
+  soundtrackAttribution?: JamendoAttribution | null,
 ): SlideshowJson {
   return {
     globalSettings,
     schemaVersion: SCHEMA_VERSION,
     ...(soundtrackFilename ? { soundtrackFilename } : {}),
     ...(themeName ? { themeName } : {}),
+    ...(soundtrackAttribution ? { soundtrackAttribution } : {}),
     slides: slides.map(slide => {
       if (isTitleSlide(slide)) {
         return {
