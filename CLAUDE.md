@@ -13,7 +13,7 @@ Local-first web app: hand-curated slideshows with automatic, Apple-Memories-grad
 ## Architecture (non-negotiable)
 
 - **Decisions live in pure modules**: Timeline Core (domain + settings cascade), Beat Grid (audio analysis math), Sequence Planner (`(timeline, beatGrid, mediaMetadata) → RenderPlan`). Everything downstream executes the RenderPlan and decides nothing.
-- **Composition (Remotion) and Editor Shell stay thin.** Load the `remotion-best-practices` skill before touching composition/player code.
+- **Composition (Remotion) and Editor Shell stay thin.** Load the `remotion-best-practices` skill before touching composition/player code. Load the `composition-patterns` skill before adding or refactoring `src/editor-shell/` UI.
 - **Determinism**: no wall-clock time or unseeded randomness anywhere the Composition consumes — export depends on it. Variation derives from slide index/seed in the RenderPlan.
 - **Project = folder**: media referenced by filename; all state in `slideshow.json` (schema-versioned) written into the user's folder via the Project Store. No backend, ever.
 - **Settings are a cascade** (global → per-slide). Themes and "Plain mode" are settings data, never special-cased code.
