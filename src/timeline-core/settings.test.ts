@@ -115,4 +115,10 @@ describe('applyImageDuration', () => {
     const result = applyImageDuration([t], 5)
     expect(result[0].durationInFrames).toBe(90) // unchanged
   })
+
+  it('skips image slides that have an imageDurationSecs per-slide override', () => {
+    const overridden: MediaSlide = { ...imgSlide('a', 90), overrides: { imageDurationSecs: 8 } }
+    const result = applyImageDuration([overridden], 3)
+    expect(result[0].durationInFrames).toBe(90) // unchanged; planner uses overrides.imageDurationSecs
+  })
 })

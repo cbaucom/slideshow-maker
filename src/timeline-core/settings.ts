@@ -40,6 +40,9 @@ export function applyImageDuration(slides: Slide[], secs: number): Slide[] {
   const frames = Math.round(secs * FPS)
   return slides.map(s => {
     if (isTitleSlide(s)) return s
-    return s.type === 'image' ? { ...s, durationInFrames: frames } : s
+    if (s.type !== 'image') return s
+    // Skip slides that have a per-slide override — the planner derives their duration from overrides.imageDurationSecs
+    if (s.overrides?.imageDurationSecs !== undefined) return s
+    return { ...s, durationInFrames: frames }
   })
 }

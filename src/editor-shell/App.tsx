@@ -37,8 +37,8 @@ function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): Slide[
   const byFilename = new Map(enumerated.map((s) => [s.filename, s]))
   const ordered: Slide[] = []
   for (const s of saved.slides) {
-    if ('kind' in s && s.kind === 'title') {
-      ordered.push({ ...s, excluded: s.excluded ?? false })
+    if (isTitleSlide(s as Slide)) {
+      ordered.push({ ...(s as Slide), excluded: s.excluded ?? false })
       continue
     }
     if (!('filename' in s)) continue
@@ -575,10 +575,10 @@ function TitleSlideDialog({
             min={1}
             max={30}
             step={0.5}
-            value={slide.durationInFrames / 30}
+            value={slide.durationInFrames / FPS}
             onChange={e => {
               const v = parseFloat(e.target.value)
-              if (!isNaN(v) && v >= 1 && v <= 30) onUpdate(slide.id, { durationInFrames: Math.round(v * 30) })
+              if (!isNaN(v) && v >= 1 && v <= 30) onUpdate(slide.id, { durationInFrames: Math.round(v * FPS) })
             }}
           />
           <span className="settings-unit">s</span>
