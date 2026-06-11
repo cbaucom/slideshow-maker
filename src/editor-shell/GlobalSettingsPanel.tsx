@@ -10,6 +10,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { GlobalSettings, TransitionType, FitMode, ThemeName } from '../timeline-core/settings'
+import { ASPECT_RATIOS } from '../timeline-core/aspect'
 import type { AspectRatio } from '../timeline-core/aspect'
 
 const THEME_LABELS: Record<ThemeName, string> = {
@@ -19,8 +20,6 @@ const THEME_LABELS: Record<ThemeName, string> = {
 }
 
 const THEME_NAMES: ThemeName[] = ['classic', 'energetic', 'plain']
-
-const ASPECT_RATIOS: AspectRatio[] = ['16:9', '9:16', '1:1']
 
 type Props = {
   aspectRatio: AspectRatio

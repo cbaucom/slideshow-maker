@@ -1,4 +1,4 @@
-export { DEFAULT_ASPECT_RATIO, dimensionsForAspectRatio } from './aspect'
+export { ASPECT_RATIOS, DEFAULT_ASPECT_RATIO, dimensionsForAspectRatio, isAspectRatio } from './aspect'
 export type { AspectRatio, CanvasDimensions } from './aspect'
 export { getMediaType, isSupportedAudio, isSupportedMedia, sortByFilename } from './media'
 export { moveSlide, toggleExcluded, filterIncluded, createTitleSlide } from './timeline'

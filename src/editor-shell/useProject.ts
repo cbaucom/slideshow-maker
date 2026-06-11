@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
-import { DEFAULT_ASPECT_RATIO, DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
+import { DEFAULT_ASPECT_RATIO, DEFAULT_GLOBAL_SETTINGS, isAspectRatio } from '../timeline-core'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import {
   addRecentProject,
@@ -120,7 +120,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         })
         pendingAudioRevokeRef.current = audioTracks
         pendingRevokeRef.current = latestSlidesRef.current
-        setAspectRatio(savedData?.aspectRatio ?? DEFAULT_ASPECT_RATIO)
+        setAspectRatio(isAspectRatio(savedData?.aspectRatio) ? savedData.aspectRatio : DEFAULT_ASPECT_RATIO)
         setAudioTracks(nextAudioTracks)
         setGlobalSettings(restoredSettings)
         setThemeName(restoredThemeName)
