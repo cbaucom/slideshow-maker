@@ -13,7 +13,7 @@ type Props = {
 
 export function PlayerPane({ renderPlan, totalFrames }: Props) {
   return (
-    <div className="flex h-full min-h-0 w-full items-center justify-center bg-black p-3">
+    <div className="flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-black p-3">
       <Player
         component={SlideshowComposition}
         durationInFrames={totalFrames}
