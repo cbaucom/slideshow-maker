@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Player } from '@remotion/player'
-import type { MediaSlide } from '../timeline-core/types'
+import type { MediaSlide, Slide, TitleSlide } from '../timeline-core/types'
+import { isTitleSlide } from '../timeline-core/types'
 import {
   moveSlide,
   toggleExcluded,
   filterIncluded,
   applyImageDuration,
   DEFAULT_GLOBAL_SETTINGS,
+  createTitleSlide,
 } from '../timeline-core'
 import type { FitMode, GlobalSettings, SlideOverrides, TransitionType } from '../timeline-core'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
@@ -31,10 +33,15 @@ const COMP_WIDTH = 1920
 const COMP_HEIGHT = 1080
 const AUTOSAVE_DELAY = 2000
 
-function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaSlide[] {
+function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): Slide[] {
   const byFilename = new Map(enumerated.map((s) => [s.filename, s]))
-  const ordered: MediaSlide[] = []
+  const ordered: Slide[] = []
   for (const s of saved.slides) {
+    if ('kind' in s && s.kind === 'title') {
+      ordered.push({ ...s, excluded: s.excluded ?? false })
+      continue
+    }
+    if (!('filename' in s)) continue
     const live = byFilename.get(s.filename)
     if (live) {
       ordered.push({
@@ -50,23 +57,37 @@ function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): MediaS
   return ordered
 }
 
-function slidesToJson(slides: MediaSlide[], globalSettings: GlobalSettings): SlideshowJson {
+function slidesToJson(slides: Slide[], globalSettings: GlobalSettings): SlideshowJson {
   return {
     schemaVersion: SCHEMA_VERSION,
     globalSettings,
-    slides: slides.map(({ id, filename, type, durationInFrames, excluded, overrides }) => ({
-      id,
-      filename,
-      type,
-      durationInFrames,
-      excluded,
-      ...(overrides && Object.keys(overrides).length > 0 ? { overrides } : {}),
-    })),
+    slides: slides.map(s => {
+      if (isTitleSlide(s)) {
+        return {
+          id: s.id,
+          kind: 'title' as const,
+          heading: s.heading,
+          ...(s.subtext !== undefined ? { subtext: s.subtext } : {}),
+          style: s.style,
+          durationInFrames: s.durationInFrames,
+          excluded: s.excluded,
+          ...(s.overrides && Object.keys(s.overrides).length > 0 ? { overrides: s.overrides } : {}),
+        }
+      }
+      return {
+        id: s.id,
+        filename: s.filename,
+        type: s.type,
+        durationInFrames: s.durationInFrames,
+        excluded: s.excluded,
+        ...(s.overrides && Object.keys(s.overrides).length > 0 ? { overrides: s.overrides } : {}),
+      }
+    }),
   }
 }
 
 export function App() {
-  const [slides, setSlides] = useState<MediaSlide[]>([])
+  const [slides, setSlides] = useState<Slide[]>([])
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,8 +97,8 @@ export function App() {
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
 
   const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
-  const pendingRevokeRef = useRef<MediaSlide[]>([])
-  const latestSlidesRef = useRef<MediaSlide[]>([])
+  const pendingRevokeRef = useRef<Slide[]>([])
+  const latestSlidesRef = useRef<Slide[]>([])
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -114,14 +135,17 @@ export function App() {
       try {
         const enumerated = await enumerateFolder(handle)
         const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
-        let finalSlides = savedData ? reconcileSlides(enumerated, savedData) : enumerated
-        // Apply global duration only to slides not already in savedData (new files added to folder).
-        const savedFilenames = new Set(savedData?.slides.map(s => s.filename) ?? [])
-        finalSlides = finalSlides.map(s =>
-          s.type === 'image' && !savedFilenames.has(s.filename)
+        let finalSlides: Slide[] = savedData ? reconcileSlides(enumerated, savedData) : enumerated
+        // Apply global duration only to media slides not already in savedData (new files added to folder).
+        const savedFilenames = new Set(
+          savedData?.slides.flatMap(s => ('filename' in s ? [s.filename] : [])) ?? [],
+        )
+        finalSlides = finalSlides.map(s => {
+          if (isTitleSlide(s)) return s
+          return s.type === 'image' && !savedFilenames.has(s.filename)
             ? { ...s, durationInFrames: Math.round(restoredSettings.imageDurationSecs * FPS) }
             : s
-        )
+        })
         pendingRevokeRef.current = latestSlidesRef.current
         setGlobalSettings(restoredSettings)
         setSlides(finalSlides)
@@ -209,6 +233,17 @@ export function App() {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))
   }, [])
 
+  const handleAddTitleSlide = useCallback(() => {
+    setSlides(prev => [...prev, createTitleSlide(crypto.randomUUID())])
+  }, [])
+
+  const handleUpdateTitleSlide = useCallback((
+    id: string,
+    updates: Partial<Pick<TitleSlide, 'heading' | 'subtext' | 'style' | 'durationInFrames'>>,
+  ) => {
+    setSlides(prev => prev.map(s => (s.id === id && isTitleSlide(s) ? { ...s, ...updates } : s)))
+  }, [])
+
   const handleStartFresh = useCallback(() => {
     setCorruptError(null)
   }, [])
@@ -219,7 +254,7 @@ export function App() {
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
 
-  const selectedSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) ?? null : null
+  const selectedSlide: Slide | null = selectedSlideId ? slides.find(s => s.id === selectedSlideId) ?? null : null
 
   return (
     <div className="app">
@@ -270,6 +305,11 @@ export function App() {
               settings={globalSettings}
               onChange={handleSettingsChange}
             />
+            <div className="sidebar-actions">
+              <button onClick={handleAddTitleSlide} className="add-title-btn">
+                + Add Title Slide
+              </button>
+            </div>
             {slides.length > 0 && (
               <StoryboardGrid
                 slides={slides}
@@ -301,7 +341,15 @@ export function App() {
         )}
       </main>
 
-      {selectedSlide && (
+      {selectedSlide && isTitleSlide(selectedSlide) && (
+        <TitleSlideDialog
+          slide={selectedSlide}
+          onUpdate={handleUpdateTitleSlide}
+          onOverride={handleSlideOverride}
+          onClose={() => setSelectedSlideId(null)}
+        />
+      )}
+      {selectedSlide && !isTitleSlide(selectedSlide) && (
         <SlideSettingsDialog
           slide={selectedSlide}
           globalSettings={globalSettings}
@@ -441,6 +489,123 @@ function SlideSettingsDialog({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function TitleSlideDialog({
+  slide,
+  onUpdate,
+  onOverride,
+  onClose,
+}: {
+  slide: TitleSlide
+  onUpdate: (id: string, updates: Partial<Pick<TitleSlide, 'heading' | 'subtext' | 'style' | 'durationInFrames'>>) => void
+  onOverride: (id: string, overrides: SlideOverrides | undefined) => void
+  onClose: () => void
+}) {
+  const ov = slide.overrides ?? {}
+
+  function setTransition(type: TransitionType) {
+    onOverride(slide.id, { ...ov, transitionType: type })
+  }
+
+  function clearTransition() {
+    const next = { ...ov }
+    delete next.transitionType
+    onOverride(slide.id, Object.keys(next).length > 0 ? next : undefined)
+  }
+
+  return (
+    <div
+      className="slide-dialog-backdrop"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Title slide settings"
+    >
+      <div className="slide-dialog">
+        <div className="slide-dialog-header">
+          <h3 className="slide-dialog-title">Title Slide</h3>
+          <button className="slide-dialog-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Heading</span>
+          <input
+            type="text"
+            className="settings-input"
+            value={slide.heading}
+            onChange={e => onUpdate(slide.id, { heading: e.target.value })}
+            placeholder="Enter heading"
+            style={{ flex: 1 }}
+          />
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Subtext</span>
+          <input
+            type="text"
+            className="settings-input"
+            value={slide.subtext ?? ''}
+            onChange={e => onUpdate(slide.id, { subtext: e.target.value || undefined })}
+            placeholder="Optional subtext"
+            style={{ flex: 1 }}
+          />
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Style</span>
+          <select
+            className="settings-select"
+            value={slide.style}
+            onChange={e => onUpdate(slide.id, { style: e.target.value as 'light' | 'dark' })}
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Duration</span>
+          <input
+            type="number"
+            className="settings-input"
+            min={1}
+            max={30}
+            step={0.5}
+            value={slide.durationInFrames / 30}
+            onChange={e => {
+              const v = parseFloat(e.target.value)
+              if (!isNaN(v) && v >= 1 && v <= 30) onUpdate(slide.id, { durationInFrames: Math.round(v * 30) })
+            }}
+          />
+          <span className="settings-unit">s</span>
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Transition</span>
+          <select
+            className="settings-select"
+            value={ov.transitionType ?? 'global'}
+            onChange={e => {
+              const v = e.target.value
+              if (v === 'global') clearTransition()
+              else setTransition(v as TransitionType)
+            }}
+          >
+            <option value="global">Global default</option>
+            <option value="crossfade">Crossfade</option>
+            <option value="dip-to-black">Dip to black</option>
+            <option value="cut">Cut</option>
+          </select>
+          {ov.transitionType !== undefined && (
+            <button className="override-reset" onClick={clearTransition} title="Reset to global">↩</button>
+          )}
+        </div>
+
+        <div className="slide-dialog-footer" />
       </div>
     </div>
   )
