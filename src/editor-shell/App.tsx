@@ -30,9 +30,12 @@ import { SlideshowComposition } from '../composition'
 import { StoryboardGrid } from './StoryboardGrid'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
 import { SoundtrackPanel } from './SoundtrackPanel'
+import { JamendoPanel } from './JamendoPanel'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { reconcileSlides, slidesToJson } from './slidePersistence'
+import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
+import { downloadTrack, sanitizeFilename } from '../jamendo'
 import './App.css'
 
 const FPS = 30
@@ -45,6 +48,7 @@ export function App() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [slides, setSlides] = useState<Slide[]>([])
   const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
+  const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
   const [themeName, setThemeName] = useState<ThemeName | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -90,9 +94,9 @@ export function App() {
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName)).catch(console.error)
+      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName, soundtrackAttribution)).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [globalSettings, slides, soundtrackFilename, themeName])
+  }, [globalSettings, slides, soundtrackFilename, soundtrackAttribution, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -108,6 +112,7 @@ export function App() {
           savedSoundtrack && nextAudioTracks.some((track) => track.filename === savedSoundtrack)
             ? savedSoundtrack
             : null
+        const restoredAttribution = validSoundtrack ? (savedData?.soundtrackAttribution ?? null) : null
         let finalSlides: Slide[] = savedData ? reconcileSlides(enumerated, savedData) : enumerated
         // Apply global duration only to media slides not already in savedData (new files added to folder).
         const savedFilenames = new Set(
@@ -126,6 +131,7 @@ export function App() {
         setThemeName(restoredThemeName)
         setSlides(finalSlides)
         setSoundtrackFilename(validSoundtrack)
+        setSoundtrackAttribution(restoredAttribution)
         setFolderOpen(true)
         setSelectedSlideId(null)
       } catch (e) {
@@ -229,6 +235,22 @@ export function App() {
     setSlides(prev => prev.map(s => (s.id === id && isTitleSlide(s) ? { ...s, ...updates } : s)))
   }, [])
 
+  const handleJamendoAdd = useCallback(async (track: JamendoTrack, attribution: JamendoAttribution) => {
+    const handle = dirHandleRef.current
+    if (!handle) return
+    const filename = sanitizeFilename(`${track.artistName} - ${track.name}`)
+    await downloadTrack(track.audioUrl, filename, handle)
+    try {
+      const nextAudioTracks = await enumerateAudioTracks(handle)
+      pendingAudioRevokeRef.current = latestAudioTracksRef.current
+      setAudioTracks(nextAudioTracks)
+      setSoundtrackFilename(filename)
+      setSoundtrackAttribution(attribution)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to refresh audio tracks')
+    }
+  }, [])
+
   const handleStartFresh = useCallback(() => {
     setCorruptError(null)
   }, [])
@@ -311,9 +333,15 @@ export function App() {
             />
             <SoundtrackPanel
               audioTracks={audioTracks}
-              onChange={setSoundtrackFilename}
+              onChange={filename => { setSoundtrackFilename(filename); setSoundtrackAttribution(null) }}
               soundtrackFilename={soundtrackFilename}
             />
+            {import.meta.env.VITE_JAMENDO_CLIENT_ID && (
+              <JamendoPanel
+                clientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
+                onAdd={handleJamendoAdd}
+              />
+            )}
             <div className="sidebar-actions">
               <button onClick={handleAddTitleSlide} className="add-title-btn">
                 + Add Title Slide

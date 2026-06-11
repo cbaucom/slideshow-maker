@@ -1,5 +1,6 @@
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
 import type { BeatGrid } from '../beat-grid/types'
+import type { JamendoAttribution } from '../jamendo/types'
 
 export const SCHEMA_VERSION = 1
 export const SLIDESHOW_FILE = 'slideshow.json'
@@ -34,6 +35,7 @@ export type SlideshowJson = {
   themeName?: ThemeName
   beatGridCache?: BeatGrid
   manualBeatGrid?: BeatGrid
+  soundtrackAttribution?: JamendoAttribution
 }
 
 export function isSlideshowJson(v: unknown): v is SlideshowJson {
