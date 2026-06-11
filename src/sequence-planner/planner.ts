@@ -2,6 +2,8 @@ import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
+import type { BeatGrid } from '../beat-grid/types'
+import { nudge } from '../beat-grid/nudge'
 import { buildDuckingEnvelope, resolveVideoVolume } from './ducking'
 import type {
   KenBurnsVector,
@@ -40,6 +42,7 @@ export function plan(
   settings: GlobalSettings,
   mediaMetadata?: Map<string, MediaMetadata>,
   soundtrack?: SoundtrackInput,
+  beatGrid?: BeatGrid,
 ): RenderPlan {
   if (slides.length === 0) {
     return {
@@ -59,15 +62,21 @@ export function plan(
     return resolve(settings, slide.overrides)
   }
 
+  const beatSyncActive = !!beatGrid && settings.beatSync !== false
+
   function getDuration(slide: Slide): number {
     if (isTitleSlide(slide)) return slide.durationInFrames
     const meta = mediaMetadata?.get(slide.filename)?.durationInFrames
     if (meta !== undefined) return meta
     // For images, honour a per-slide imageDurationSecs override.
+    let raw = slide.durationInFrames
     if (slide.type === 'image' && slide.overrides?.imageDurationSecs !== undefined) {
-      return Math.round(resolved(slide).imageDurationSecs * FPS)
+      raw = Math.round(resolved(slide).imageDurationSecs * FPS)
     }
-    return slide.durationInFrames
+    if (beatSyncActive && slide.type !== 'video') {
+      return nudge(raw, beatGrid!, resolved(slide).energy ?? 'medium', FPS)
+    }
+    return raw
   }
 
   function getFitMode(slide: Slide): FitMode {

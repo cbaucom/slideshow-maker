@@ -1,4 +1,5 @@
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
+import type { BeatGrid } from '../beat-grid/types'
 
 export const SCHEMA_VERSION = 1
 export const SLIDESHOW_FILE = 'slideshow.json'
@@ -31,6 +32,7 @@ export type SlideshowJson = {
   slides: SerializedSlide[]
   soundtrackFilename?: string
   themeName?: ThemeName
+  beatGridCache?: BeatGrid
 }
 
 export function isSlideshowJson(v: unknown): v is SlideshowJson {

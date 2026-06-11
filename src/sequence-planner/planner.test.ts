@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { plan, TRANSITION_FRAMES } from './planner'
 import type { GlobalSettings } from '../timeline-core/settings'
 import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core/settings'
+import type { BeatGrid } from '../beat-grid/types'
 import type { MediaSlide } from '../timeline-core/types'
 import { createTitleSlide } from '../timeline-core/timeline'
 
@@ -442,5 +443,70 @@ describe('plan — kenBurnsMode zoom-in-only', () => {
     )
     expect(directions).toContain('in')
     expect(directions).toContain('out')
+  })
+})
+
+// --- Beat sync ---
+// 120 BPM @ 30fps → beatFrames = 15
+const BEAT_GRID_120: BeatGrid = { bpm: 120, beatIntervalSecs: 0.5, firstBeatOffsetSecs: 0 }
+const BEAT_F = 15
+
+const BEAT_SYNC_ON: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut', beatSync: true, energy: 'medium' }
+const BEAT_SYNC_OFF: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut', beatSync: false }
+
+describe('plan — beat sync off (AC3)', () => {
+  it('uses exact target durations when beatSync is false', () => {
+    const slides = [makeSlide('a', 'image', 92), makeSlide('b', 'image', 77)]
+    const result = plan(slides, BEAT_SYNC_OFF, undefined, undefined, BEAT_GRID_120)
+    expect(result.entries[0].durationInFrames).toBe(92)
+    expect(result.entries[1].durationInFrames).toBe(77)
+  })
+
+  it('uses exact target durations when no beatGrid provided', () => {
+    const slides = [makeSlide('a', 'image', 92), makeSlide('b', 'image', 77)]
+    const result = plan(slides, BEAT_SYNC_ON, undefined, undefined, undefined)
+    expect(result.entries[0].durationInFrames).toBe(92)
+    expect(result.entries[1].durationInFrames).toBe(77)
+  })
+})
+
+describe('plan — beat sync on (AC2)', () => {
+  it('every slide duration is a multiple of beat frames (lands on a beat)', () => {
+    const slides = [
+      makeSlide('a', 'image', 92),
+      makeSlide('b', 'image', 77),
+      makeSlide('c', 'image', 105),
+    ]
+    const result = plan(slides, BEAT_SYNC_ON, undefined, undefined, BEAT_GRID_120)
+    for (const entry of result.entries) {
+      expect(entry.durationInFrames % BEAT_F).toBe(0)
+    }
+  })
+
+  it('each duration deviates from target by at most half a beat interval', () => {
+    const targets = [88, 92, 99, 105, 110]
+    const slides = targets.map((d, i) => makeSlide(`s${i}`, 'image', d))
+    const result = plan(slides, BEAT_SYNC_ON, undefined, undefined, BEAT_GRID_120)
+    result.entries.forEach((entry, i) => {
+      expect(Math.abs(entry.durationInFrames - targets[i])).toBeLessThanOrEqual(BEAT_F / 2)
+    })
+  })
+})
+
+describe('plan — beat sync energy effect (AC4)', () => {
+  it('calm produces longer average duration than punchy on same timeline', () => {
+    const targets = [60, 75, 90, 105, 120]
+    const slides = targets.map((d, i) => makeSlide(`s${i}`, 'image', d))
+
+    const calmSettings: GlobalSettings = { ...BEAT_SYNC_ON, energy: 'calm' }
+    const punchySettings: GlobalSettings = { ...BEAT_SYNC_ON, energy: 'punchy' }
+
+    const calmResult = plan(slides, calmSettings, undefined, undefined, BEAT_GRID_120)
+    const punchyResult = plan(slides, punchySettings, undefined, undefined, BEAT_GRID_120)
+
+    const avg = (entries: typeof calmResult.entries) =>
+      entries.reduce((s, e) => s + e.durationInFrames, 0) / entries.length
+
+    expect(avg(calmResult.entries)).toBeGreaterThan(avg(punchyResult.entries))
   })
 })
