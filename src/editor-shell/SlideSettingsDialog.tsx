@@ -116,9 +116,10 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
         ) : null}
 
         <div className="override-row">
-          <span className="override-label">Mute music</span>
+          <label className="override-label" htmlFor={`${slide.id}-mute-music`}>Mute music</label>
           <input
             checked={ov.muteMusic ?? false}
+            id={`${slide.id}-mute-music`}
             onChange={e => {
               if (e.target.checked) {
                 setField('muteMusic', true)
@@ -135,10 +136,11 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
         </div>
 
         <div className="override-row">
-          <span className="override-label">Music level</span>
+          <label className="override-label" htmlFor={`${slide.id}-music-volume`}>Music level</label>
           <input
             className="settings-input"
             disabled={ov.muteMusic === true}
+            id={`${slide.id}-music-volume`}
             max={100}
             min={0}
             onChange={e => {
@@ -160,9 +162,10 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
         {slide.type === 'video' ? (
           <>
             <div className="override-row">
-              <span className="override-label">Mute video audio</span>
+              <label className="override-label" htmlFor={`${slide.id}-mute-video-audio`}>Mute video audio</label>
               <input
                 checked={ov.muteVideoAudio ?? false}
+                id={`${slide.id}-mute-video-audio`}
                 onChange={e => {
                   if (e.target.checked) {
                     setField('muteVideoAudio', true)
@@ -179,10 +182,11 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
             </div>
 
             <div className="override-row">
-              <span className="override-label">Video level</span>
+              <label className="override-label" htmlFor={`${slide.id}-video-volume`}>Video level</label>
               <input
                 className="settings-input"
                 disabled={ov.muteVideoAudio === true}
+                id={`${slide.id}-video-volume`}
                 max={100}
                 min={0}
                 onChange={e => {
