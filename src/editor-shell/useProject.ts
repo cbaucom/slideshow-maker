@@ -6,6 +6,7 @@ import type { GlobalSettings, ThemeName } from '../timeline-core'
 import {
   addRecentProject,
   enumerateAudioTracks,
+  importDroppedMediaFiles,
   listRecentProjects,
   openProject,
   requestHandlePermission,
@@ -23,6 +24,14 @@ import { FPS } from './PlayerPane'
 
 const AUTOSAVE_DELAY = 2000
 
+async function listFolderFilenames(handle: FileSystemDirectoryHandle): Promise<Set<string>> {
+  const names = new Set<string>()
+  for await (const entry of handle.values()) {
+    if (entry.kind === 'file') names.add(entry.name)
+  }
+  return names
+}
+
 type Options = {
   onFolderLoaded?: () => void
 }
@@ -38,6 +47,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
   const [folderOpen, setFolderOpen] = useState(false)
+  const [importNotice, setImportNotice] = useState<string | null>(null)
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
 
   const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
@@ -203,6 +213,41 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     setCorruptError(null)
   }, [])
 
+  const dismissImportNotice = useCallback(() => {
+    setImportNotice(null)
+  }, [])
+
+  const importDroppedFiles = useCallback(async (files: File[]) => {
+    const handle = dirHandleRef.current
+    if (!handle || files.length === 0) return
+
+    try {
+      const existingFilenames = await listFolderFilenames(handle)
+      const { imported, skipped } = await importDroppedMediaFiles(handle, files, existingFilenames)
+
+      if (imported.length > 0) {
+        pendingRevokeRef.current = latestSlidesRef.current
+        setSlides((previousSlides) => [
+          ...previousSlides,
+          ...imported.map((slide) => (
+            slide.type === 'image'
+              ? { ...slide, durationInFrames: Math.round(globalSettings.imageDurationSecs * FPS) }
+              : slide
+          )),
+        ])
+      }
+
+      if (skipped.length > 0) {
+        const names = skipped.map((entry) => entry.filename).join(', ')
+        setImportNotice(`Skipped unsupported file type${skipped.length > 1 ? 's' : ''}: ${names}`)
+      } else {
+        setImportNotice(null)
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to import files')
+    }
+  }, [globalSettings])
+
   return {
     audioTracks,
     globalSettings,
@@ -215,7 +260,10 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     loading,
     error,
     corruptError,
+    dismissImportNotice,
     folderOpen,
+    importDroppedFiles,
+    importNotice,
     recentProjects,
     pickFolder,
     refresh,

@@ -13,6 +13,7 @@ import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core
 import { applyTheme } from '../timeline-core'
 import { plan } from '../sequence-planner'
 import { AppHeader } from './AppHeader'
+import { DropImportLayer } from './DropImportLayer'
 import { EditorLayout } from './EditorLayout'
 import { EditorSidebar } from './EditorSidebar'
 import { EmptyState } from './EmptyState'
@@ -40,6 +41,7 @@ export function App() {
     error,
     corruptError,
     folderOpen,
+    importNotice,
     recentProjects,
   } = project
 
@@ -110,6 +112,7 @@ export function App() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <DropImportLayer enabled={folderOpen} onDropFiles={project.importDroppedFiles} />
       <AppHeader
         folderOpen={folderOpen}
         loading={loading}
@@ -133,6 +136,15 @@ export function App() {
           </Button>
         </div>
       )}
+
+      {importNotice ? (
+        <div className="flex shrink-0 items-center gap-2 border-b border-amber-500/30 bg-amber-950/40 px-4 py-2 text-sm text-amber-200">
+          <span>{importNotice}</span>
+          <Button size="xs" variant="outline" onClick={project.dismissImportNotice}>
+            Dismiss
+          </Button>
+        </div>
+      ) : null}
 
       {loading && (
         <div className="shrink-0 border-b bg-blue-950/40 px-4 py-1.5 text-sm text-blue-300">
