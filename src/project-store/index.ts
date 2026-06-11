@@ -1,5 +1,7 @@
 export { enumerateAudioTracks, revokeAudioBlobUrls } from './audio-loader'
 export type { AudioTrack } from './audio-loader'
+export { importDroppedMediaFiles, resolveUniqueFilename } from './import-media'
+export type { ImportDirHandle, ImportDroppedMediaResult, SkippedImport } from './import-media'
 export { createFreshProject, openProject, saveProject } from './project-store'
 export type { DirHandle, OpenResult } from './project-store'
 export { addRecentProject, listRecentProjects, removeRecentProject, requestHandlePermission } from './recent-projects'
