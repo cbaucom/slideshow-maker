@@ -25,6 +25,25 @@ async function getVideoDurationFrames(file: File): Promise<number> {
   }
 }
 
+export async function createMediaSlideFromFile(file: File): Promise<MediaSlide> {
+  const filename = file.name
+  const type = getMediaType(filename)
+  const blobUrl = URL.createObjectURL(file)
+  const durationInFrames =
+    type === 'video'
+      ? await getVideoDurationFrames(file)
+      : IMAGE_DURATION_FRAMES
+
+  return {
+    blobUrl,
+    durationInFrames,
+    excluded: false,
+    filename,
+    id: `${filename}-${file.lastModified}`,
+    type,
+  }
+}
+
 export async function enumerateFolder(
   dirHandle: FileSystemDirectoryHandle,
 ): Promise<MediaSlide[]> {
@@ -37,36 +56,22 @@ export async function enumerateFolder(
     files.push(file)
   }
 
-  const sorted = sortByFilename(files.map((f) => f.name))
-  const filesByName = new Map(files.map((f) => [f.name, f]))
+  const sorted = sortByFilename(files.map((file) => file.name))
+  const filesByName = new Map(files.map((file) => [file.name, file]))
 
   const createdUrls: string[] = []
   try {
     const slides: MediaSlide[] = []
     for (const filename of sorted) {
       const file = filesByName.get(filename)!
-      const type = getMediaType(filename)
-      const blobUrl = URL.createObjectURL(file)
-      createdUrls.push(blobUrl)
-
-      const durationInFrames =
-        type === 'video'
-          ? await getVideoDurationFrames(file)
-          : IMAGE_DURATION_FRAMES
-
-      slides.push({
-        id: `${filename}-${file.lastModified}`,
-        filename,
-        type,
-        blobUrl,
-        durationInFrames,
-        excluded: false,
-      })
+      const slide = await createMediaSlideFromFile(file)
+      createdUrls.push(slide.blobUrl)
+      slides.push(slide)
     }
     return slides
-  } catch (e) {
+  } catch (error) {
     createdUrls.forEach((url) => URL.revokeObjectURL(url))
-    throw e
+    throw error
   }
 }
 
