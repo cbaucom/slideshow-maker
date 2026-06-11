@@ -174,6 +174,7 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
           >
             <Slider
               id={`${slide.id}-music-volume`}
+              aria-label="Music level"
               disabled={ov.muteMusic === true}
               min={0}
               max={100}
@@ -218,6 +219,7 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
               >
                 <Slider
                   id={`${slide.id}-video-volume`}
+                  aria-label="Video level"
                   disabled={ov.muteVideoAudio === true}
                   min={0}
                   max={100}
