@@ -11,7 +11,14 @@ export type GlobalSettings = {
   fitMode: FitMode
 }
 
-export type SlideOverrides = Partial<GlobalSettings>
+export type SlideAudioOverrides = {
+  muteMusic?: boolean
+  muteVideoAudio?: boolean
+  musicVolume?: number
+  videoVolume?: number
+}
+
+export type SlideOverrides = Partial<GlobalSettings> & SlideAudioOverrides
 
 export type ResolvedSlideSettings = GlobalSettings
 

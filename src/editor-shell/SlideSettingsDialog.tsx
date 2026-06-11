@@ -115,6 +115,94 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
           </div>
         ) : null}
 
+        <div className="override-row">
+          <span className="override-label">Mute music</span>
+          <input
+            checked={ov.muteMusic ?? false}
+            onChange={e => {
+              if (e.target.checked) {
+                setField('muteMusic', true)
+                return
+              }
+              clearField('muteMusic')
+            }}
+            type="checkbox"
+          />
+          {ov.muteMusic !== undefined
+            ? <button className="override-reset" onClick={() => clearField('muteMusic')} title="Reset to global">↩</button>
+            : <span className="override-default">off</span>
+          }
+        </div>
+
+        <div className="override-row">
+          <span className="override-label">Music level</span>
+          <input
+            className="settings-input"
+            disabled={ov.muteMusic === true}
+            max={100}
+            min={0}
+            onChange={e => {
+              const value = Number(e.target.value) / 100
+              if (Number.isNaN(value)) return
+              setField('musicVolume', value)
+            }}
+            step={5}
+            type="range"
+            value={Math.round((ov.musicVolume ?? 1) * 100)}
+          />
+          <span className="settings-unit">{Math.round((ov.musicVolume ?? 1) * 100)}%</span>
+          {ov.musicVolume !== undefined
+            ? <button className="override-reset" onClick={() => clearField('musicVolume')} title="Reset to global">↩</button>
+            : <span className="override-default">auto</span>
+          }
+        </div>
+
+        {slide.type === 'video' ? (
+          <>
+            <div className="override-row">
+              <span className="override-label">Mute video audio</span>
+              <input
+                checked={ov.muteVideoAudio ?? false}
+                onChange={e => {
+                  if (e.target.checked) {
+                    setField('muteVideoAudio', true)
+                    return
+                  }
+                  clearField('muteVideoAudio')
+                }}
+                type="checkbox"
+              />
+              {ov.muteVideoAudio !== undefined
+                ? <button className="override-reset" onClick={() => clearField('muteVideoAudio')} title="Reset to global">↩</button>
+                : <span className="override-default">off</span>
+              }
+            </div>
+
+            <div className="override-row">
+              <span className="override-label">Video level</span>
+              <input
+                className="settings-input"
+                disabled={ov.muteVideoAudio === true}
+                max={100}
+                min={0}
+                onChange={e => {
+                  const value = Number(e.target.value) / 100
+                  if (Number.isNaN(value)) return
+                  setField('videoVolume', value)
+                }}
+                step={5}
+                type="range"
+                value={Math.round((ov.videoVolume ?? 1) * 100)}
+              />
+              <span className="settings-unit">{Math.round((ov.videoVolume ?? 1) * 100)}%</span>
+              {ov.videoVolume !== undefined
+                ? <button className="override-reset" onClick={() => clearField('videoVolume')} title="Reset to global">↩</button>
+                : <span className="override-default">100%</span>
+              }
+            </div>
+          </>
+        ) : null}
+
         <div className="slide-dialog-footer">
           {hasOverrides ? (
             <button className="override-reset-all" onClick={resetAll}>

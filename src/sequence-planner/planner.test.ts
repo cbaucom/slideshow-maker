@@ -381,7 +381,14 @@ describe('plan — soundtrack', () => {
 
   it('includes soundtrack on RenderPlan when provided', () => {
     const result = plan([IMG_90], CROSSFADE, undefined, SOUNDTRACK)
-    expect(result.soundtrack).toEqual({ ...SOUNDTRACK, volume: 1 })
+    expect(result.soundtrack).toEqual({
+      ...SOUNDTRACK,
+      duckingEnvelope: {
+        keyframes: [{ frame: 0, volume: 1 }],
+        rampFrames: 6,
+        segments: [],
+      },
+    })
     expect(result.totalFrames).toBe(90)
   })
 

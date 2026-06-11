@@ -15,6 +15,23 @@ export type KenBurnsVector = {
   toY: number
 }
 
+export type VolumeKeyframe = {
+  frame: number
+  volume: number
+}
+
+export type DuckingSegment = {
+  duckEndFrame: number
+  duckLevel: number
+  duckStartFrame: number
+}
+
+export type DuckingEnvelope = {
+  keyframes: VolumeKeyframe[]
+  rampFrames: number
+  segments: DuckingSegment[]
+}
+
 export type RenderPlanEntry = {
   slide: Slide
   startFrame: number
@@ -22,12 +39,13 @@ export type RenderPlanEntry = {
   transitionIn?: TransitionSpec
   fitMode: FitMode
   kenBurns: KenBurnsVector | null
+  videoVolume: number
 }
 
 export type SoundtrackTrack = {
   blobUrl: string
+  duckingEnvelope: DuckingEnvelope
   durationInFrames: number
-  volume: number
 }
 
 export type RenderPlan = {
