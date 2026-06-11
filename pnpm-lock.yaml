@@ -11,6 +11,9 @@ importers:
 
   .:
     dependencies:
+      '@remotion/google-fonts':
+        specifier: ^4.0.475
+        version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/media':
         specifier: ^4.0.289
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -458,6 +461,9 @@ packages:
     resolution: {integrity: sha512-DoKzrzEN/ivdxFy61Kbqzsz/U4+6F6Nk1Psu9hSYYYriqhzifW57VuNciuXjFS5Xuyhb8aXcy5hCgbDdqr3EIg==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@remotion/google-fonts@4.0.475':
+    resolution: {integrity: sha512-YJR0foFqmO9Jkufz37X1iDiS1HjKqRrp3y7SASolz9FxO8U4Ukp+JRe+KZTAkeLkPMaqi/fXuDljqhVKUjcYRQ==}
 
   '@remotion/media@4.0.475':
     resolution: {integrity: sha512-X4RqOqPDwmNsfig6x950TxWtfb4nUWsyPSTT/RTJiw13lEaNNesr8Ob2Bm1NWYmYQLqHmt+kZbJPF6zBt/yDyA==}
@@ -2172,6 +2178,13 @@ snapshots:
     dependencies:
       playwright: 1.61.0-alpha-1781023400000
       playwright-core: 1.61.0-alpha-1781023400000
+
+  '@remotion/google-fonts@4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      remotion: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@remotion/media@4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:

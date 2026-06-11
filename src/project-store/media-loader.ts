@@ -1,5 +1,7 @@
 import { Input, ALL_FORMATS, BlobSource } from 'mediabunny'
 import { isSupportedMedia, getMediaType, sortByFilename } from '../timeline-core'
+import { isTitleSlide } from '../timeline-core/types'
+import type { Slide } from '../timeline-core/types'
 import type { MediaSlide } from '../timeline-core/types'
 
 const FPS = 30
@@ -68,6 +70,6 @@ export async function enumerateFolder(
   }
 }
 
-export function revokeSlideBlobUrls(slides: MediaSlide[]): void {
-  slides.forEach((s) => URL.revokeObjectURL(s.blobUrl))
+export function revokeSlideBlobUrls(slides: Slide[]): void {
+  slides.forEach((s) => { if (!isTitleSlide(s)) URL.revokeObjectURL(s.blobUrl) })
 }

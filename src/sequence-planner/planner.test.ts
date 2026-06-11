@@ -3,6 +3,7 @@ import { plan, TRANSITION_FRAMES } from './planner'
 import type { GlobalSettings } from '../timeline-core/settings'
 import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core/settings'
 import type { MediaSlide } from '../timeline-core/types'
+import { createTitleSlide } from '../timeline-core/timeline'
 
 function makeSlide(id: string, type: 'image' | 'video', durationInFrames: number): MediaSlide {
   return { id, filename: `${id}.${type === 'image' ? 'jpg' : 'mp4'}`, type, durationInFrames, blobUrl: '', excluded: false }
@@ -314,5 +315,63 @@ describe('plan — per-slide overrides', () => {
     const img = { ...makeSlide('a', 'image', 90), overrides: { fitMode: undefined } }
     const result = plan([img], BASE)
     expect(result.entries[0].fitMode).toBe('cover') // global default
+  })
+})
+
+// --- Title slides in planner ---
+
+describe('plan — title slides', () => {
+  const SETTINGS = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'crossfade' as const, kenBurns: true }
+
+  it('title slide appears in entries with its durationInFrames', () => {
+    const t = createTitleSlide('t', 'Opening')
+    const result = plan([t], SETTINGS)
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0].durationInFrames).toBe(90)
+    expect(result.totalFrames).toBe(90)
+  })
+
+  it('title slide has kenBurns=null regardless of global setting', () => {
+    const t = createTitleSlide('t', 'Title')
+    const result = plan([t], SETTINGS)
+    expect(result.entries[0].kenBurns).toBeNull()
+  })
+
+  it('title slide does not advance photo index so Ken Burns alternation is unaffected', () => {
+    const img1 = makeSlide('a', 'image', 90)
+    const title = createTitleSlide('t', 'Mid')
+    const img2 = makeSlide('b', 'image', 90)
+    const result = plan([img1, title, img2], SETTINGS)
+    const d0 = result.entries[0].kenBurns!
+    const d2 = result.entries[2].kenBurns!
+    const dir0 = d0.toScale > d0.fromScale ? 'zoom-in' : 'zoom-out'
+    const dir2 = d2.toScale > d2.fromScale ? 'zoom-in' : 'zoom-out'
+    // photo index 0 → zoom-in, photo index 1 → zoom-out
+    expect(dir0).toBe('zoom-in')
+    expect(dir2).toBe('zoom-out')
+  })
+
+  it('title slide participates in transitions with adjacent slides', () => {
+    const img = makeSlide('a', 'image', 90)
+    const t = createTitleSlide('t', 'Title')
+    const result = plan([img, t], SETTINGS)
+    expect(result.entries[1].transitionIn?.type).toBe('crossfade')
+    expect(result.entries[1].transitionIn?.durationInFrames).toBe(15)
+  })
+
+  it('title slide transition override is respected', () => {
+    const img = makeSlide('a', 'image', 90)
+    const t = { ...createTitleSlide('t', 'Title'), overrides: { transitionType: 'cut' as const } }
+    const result = plan([img, t], SETTINGS)
+    expect(result.entries[1].transitionIn?.type).toBe('cut')
+    expect(result.entries[1].transitionIn?.durationInFrames).toBe(0)
+  })
+
+  it('mixed sequence totalFrames is consistent', () => {
+    const img = makeSlide('a', 'image', 90)
+    const t = { ...createTitleSlide('t', 'Title'), durationInFrames: 60 }
+    const result = plan([img, t], SETTINGS)
+    // 90 + 60 - 15 (crossfade overlap) = 135
+    expect(result.totalFrames).toBe(135)
   })
 })

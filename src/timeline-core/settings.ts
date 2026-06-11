@@ -1,4 +1,5 @@
-import type { MediaSlide } from './types'
+import { isTitleSlide } from './types'
+import type { Slide } from './types'
 
 export type TransitionType = 'crossfade' | 'dip-to-black' | 'cut'
 export type FitMode = 'cover' | 'contain' | 'blur-fill'
@@ -35,7 +36,13 @@ export function resolve(
   return { ...global, ...defined }
 }
 
-export function applyImageDuration(slides: MediaSlide[], secs: number): MediaSlide[] {
+export function applyImageDuration(slides: Slide[], secs: number): Slide[] {
   const frames = Math.round(secs * FPS)
-  return slides.map(s => s.type === 'image' ? { ...s, durationInFrames: frames } : s)
+  return slides.map(s => {
+    if (isTitleSlide(s)) return s
+    if (s.type !== 'image') return s
+    // Skip slides that have a per-slide override — the planner derives their duration from overrides.imageDurationSecs
+    if (s.overrides?.imageDurationSecs !== undefined) return s
+    return { ...s, durationInFrames: frames }
+  })
 }

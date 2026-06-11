@@ -6,6 +6,7 @@ import {
 } from './settings'
 import type { GlobalSettings } from './settings'
 import type { MediaSlide } from './types'
+import { createTitleSlide } from './timeline'
 
 function imgSlide(id: string, durationInFrames = 90): MediaSlide {
   return { id, filename: `${id}.jpg`, type: 'image', blobUrl: '', durationInFrames, excluded: false }
@@ -107,5 +108,17 @@ describe('applyImageDuration', () => {
     const slides = [imgSlide('a')]
     const result = applyImageDuration(slides, 2.5)
     expect(result[0].durationInFrames).toBe(75) // 2.5 * 30
+  })
+
+  it('does not change title slide durations', () => {
+    const t = createTitleSlide('t', 'Title')
+    const result = applyImageDuration([t], 5)
+    expect(result[0].durationInFrames).toBe(90) // unchanged
+  })
+
+  it('skips image slides that have an imageDurationSecs per-slide override', () => {
+    const overridden: MediaSlide = { ...imgSlide('a', 90), overrides: { imageDurationSecs: 8 } }
+    const result = applyImageDuration([overridden], 3)
+    expect(result[0].durationInFrames).toBe(90) // unchanged; planner uses overrides.imageDurationSecs
   })
 })

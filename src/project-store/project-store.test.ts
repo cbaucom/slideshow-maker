@@ -92,7 +92,8 @@ describe('openProject', () => {
     expect(result.status).toBe('ok')
     if (result.status === 'ok') {
       expect(result.data.slides).toHaveLength(1)
-      expect(result.data.slides[0].filename).toBe('a.jpg')
+      const s = result.data.slides[0]
+      expect('filename' in s ? s.filename : undefined).toBe('a.jpg')
     }
   })
 
@@ -144,7 +145,8 @@ describe('saveProject', () => {
     const result = await openProject(dir)
     expect(result.status).toBe('ok')
     if (result.status === 'ok') {
-      expect(result.data.slides[0].filename).toBe('x.jpg')
+      const s = result.data.slides[0]
+      expect('filename' in s ? s.filename : undefined).toBe('x.jpg')
     }
   })
 })

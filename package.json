@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@remotion/google-fonts": "^4.0.475",
     "@remotion/media": "^4.0.289",
     "@remotion/player": "^4.0.289",
     "@remotion/transitions": "^4.0.289",

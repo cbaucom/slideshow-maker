@@ -1,6 +1,7 @@
 import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
-import type { MediaSlide } from '../timeline-core/types'
+import { isTitleSlide } from '../timeline-core/types'
+import type { Slide } from '../timeline-core/types'
 import type { KenBurnsVector, MediaMetadata, RenderPlan, RenderPlanEntry, TransitionSpec } from './types'
 
 const FPS = 30
@@ -21,18 +22,19 @@ const KB_PRESETS: KenBurnsVector[] = [
 ]
 
 export function plan(
-  slides: MediaSlide[],
+  slides: Slide[],
   settings: GlobalSettings,
   mediaMetadata?: Map<string, MediaMetadata>,
 ): RenderPlan {
   if (slides.length === 0) return { entries: [], totalFrames: 0 }
 
 
-  function resolved(slide: MediaSlide) {
+  function resolved(slide: Slide) {
     return resolve(settings, slide.overrides)
   }
 
-  function getDuration(slide: MediaSlide): number {
+  function getDuration(slide: Slide): number {
+    if (isTitleSlide(slide)) return slide.durationInFrames
     const meta = mediaMetadata?.get(slide.filename)?.durationInFrames
     if (meta !== undefined) return meta
     // For images, honour a per-slide imageDurationSecs override.
@@ -42,12 +44,13 @@ export function plan(
     return slide.durationInFrames
   }
 
-  function getFitMode(slide: MediaSlide): FitMode {
+  function getFitMode(slide: Slide): FitMode {
+    if (isTitleSlide(slide)) return 'cover' // unused; TitleSlideView renders its own layout
     return slide.type === 'video' ? 'contain' : resolved(slide).fitMode
   }
 
   // Per-slide resolved transition duration (inbound = this slide's resolved type).
-  function getTransitionDur(slide: MediaSlide): number {
+  function getTransitionDur(slide: Slide): number {
     return TRANSITION_FRAMES[resolved(slide).transitionType]
   }
 
@@ -80,11 +83,11 @@ export function plan(
         : { type: slideResolved.transitionType, durationInFrames: effectiveTrans[i] }
 
     const kenBurns: KenBurnsVector | null =
-      slideResolved.kenBurns && slide.type !== 'video'
+      !isTitleSlide(slide) && slideResolved.kenBurns && slide.type !== 'video'
         ? KB_PRESETS[photoIndex % KB_PRESETS.length]
         : null
 
-    if (slide.type !== 'video') photoIndex++
+    if (!isTitleSlide(slide) && slide.type !== 'video') photoIndex++
 
     entries.push({
       slide,

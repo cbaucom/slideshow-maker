@@ -3,7 +3,7 @@ import type { GlobalSettings, SlideOverrides } from '../timeline-core/settings'
 export const SCHEMA_VERSION = 1
 export const SLIDESHOW_FILE = 'slideshow.json'
 
-export type SerializedSlide = {
+export type SerializedMediaSlide = {
   id: string
   filename: string
   type: 'image' | 'video'
@@ -11,6 +11,19 @@ export type SerializedSlide = {
   excluded?: boolean
   overrides?: SlideOverrides
 }
+
+export type SerializedTitleSlide = {
+  id: string
+  kind: 'title'
+  heading: string
+  subtext?: string
+  style: 'light' | 'dark'
+  durationInFrames: number
+  excluded?: boolean
+  overrides?: SlideOverrides
+}
+
+export type SerializedSlide = SerializedMediaSlide | SerializedTitleSlide
 
 export type SlideshowJson = {
   schemaVersion: number

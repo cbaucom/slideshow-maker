@@ -1,5 +1,5 @@
 import type { FitMode, TransitionType } from '../timeline-core/settings'
-import type { MediaSlide } from '../timeline-core/types'
+import type { Slide } from '../timeline-core/types'
 
 export type TransitionSpec = {
   type: TransitionType
@@ -16,7 +16,7 @@ export type KenBurnsVector = {
 }
 
 export type RenderPlanEntry = {
-  slide: MediaSlide
+  slide: Slide
   startFrame: number
   durationInFrames: number
   transitionIn?: TransitionSpec

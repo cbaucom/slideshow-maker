@@ -4,8 +4,16 @@ import { Video } from '@remotion/media'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { TransitionPresentation, TransitionPresentationComponentProps } from '@remotion/transitions'
+import { loadFont } from '@remotion/google-fonts/Inter'
 import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
+import { isTitleSlide } from '../timeline-core/types'
+import type { MediaSlide, TitleSlide } from '../timeline-core/types'
+
+type MediaRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: MediaSlide }
+type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide }
+
+const { fontFamily } = loadFont('normal', { weights: ['400', '700'], subsets: ['latin'] })
 
 export type SlideshowProps = {
   plan: RenderPlan
@@ -62,7 +70,11 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
             />
           )}
           <TransitionSeries.Sequence durationInFrames={entry.durationInFrames} premountFor={30}>
-            <MediaSlideView entry={entry} />
+            {isTitleSlide(entry.slide) ? (
+              <TitleSlideView entry={entry as TitleRenderPlanEntry} />
+            ) : (
+              <MediaSlideView entry={entry as MediaRenderPlanEntry} />
+            )}
           </TransitionSeries.Sequence>
         </React.Fragment>
       ))}
@@ -70,7 +82,49 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   )
 }
 
-function MediaSlideView({ entry }: { entry: RenderPlanEntry }) {
+function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {
+  const { slide } = entry
+  const bg = slide.style === 'light' ? '#fff' : '#111'
+  const fg = slide.style === 'light' ? '#111' : '#f0f0f0'
+
+  return (
+    <AbsoluteFill style={{ background: bg, alignItems: 'center', justifyContent: 'center', padding: '80px' }}>
+      <div style={{ textAlign: 'center', maxWidth: 1600, overflow: 'hidden' }}>
+        <div
+          style={{
+            fontFamily,
+            fontWeight: 700,
+            fontSize: 96,
+            color: fg,
+            lineHeight: 1.15,
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+          }}
+        >
+          {slide.heading}
+        </div>
+        {slide.subtext && (
+          <div
+            style={{
+              fontFamily,
+              fontWeight: 400,
+              fontSize: 48,
+              color: fg,
+              lineHeight: 1.4,
+              marginTop: 32,
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+            }}
+          >
+            {slide.subtext}
+          </div>
+        )}
+      </div>
+    </AbsoluteFill>
+  )
+}
+
+function MediaSlideView({ entry }: { entry: MediaRenderPlanEntry }) {
   const { slide, fitMode, kenBurns, durationInFrames } = entry
   const frame = useCurrentFrame()
 
