@@ -190,6 +190,38 @@ button:disabled {
   color: #888;
 }
 
+.theme-row {
+  align-items: flex-start;
+  padding: 6px 0;
+}
+
+.theme-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.theme-btn {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.theme-btn:hover {
+  border-color: #555;
+  color: #eee;
+}
+
+.theme-btn--active {
+  background: #2a5caa;
+  border-color: #4a7cd8;
+  color: #fff;
+}
+
 /* Thumbnail list */
 .thumbnail-list {
   padding: 12px;

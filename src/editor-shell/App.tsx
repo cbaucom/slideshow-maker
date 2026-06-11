@@ -10,7 +10,8 @@ import {
   DEFAULT_GLOBAL_SETTINGS,
   createTitleSlide,
 } from '../timeline-core'
-import type { GlobalSettings, SlideOverrides } from '../timeline-core'
+import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
+import { applyTheme } from '../timeline-core'
 import {
   addRecentProject,
   enumerateAudioTracks,
@@ -44,6 +45,7 @@ export function App() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [slides, setSlides] = useState<Slide[]>([])
   const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
+  const [themeName, setThemeName] = useState<ThemeName | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
@@ -88,9 +90,9 @@ export function App() {
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename)).catch(console.error)
+      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName)).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [globalSettings, slides, soundtrackFilename])
+  }, [globalSettings, slides, soundtrackFilename, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -100,6 +102,7 @@ export function App() {
         const enumerated = await enumerateFolder(handle)
         const nextAudioTracks = await enumerateAudioTracks(handle)
         const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
+        const restoredThemeName = savedData?.themeName ?? null
         const savedSoundtrack = savedData?.soundtrackFilename ?? null
         const validSoundtrack =
           savedSoundtrack && nextAudioTracks.some((track) => track.filename === savedSoundtrack)
@@ -120,6 +123,7 @@ export function App() {
         pendingRevokeRef.current = latestSlidesRef.current
         setAudioTracks(nextAudioTracks)
         setGlobalSettings(restoredSettings)
+        setThemeName(restoredThemeName)
         setSlides(finalSlides)
         setSoundtrackFilename(validSoundtrack)
         setFolderOpen(true)
@@ -195,7 +199,15 @@ export function App() {
 
   const handleSettingsChange = useCallback((updated: GlobalSettings) => {
     setGlobalSettings(updated)
+    setThemeName(null)
     setSlides(prev => applyImageDuration(prev, updated.imageDurationSecs))
+  }, [])
+
+  const handleThemeChange = useCallback((name: ThemeName) => {
+    const themeSettings = applyTheme(name)
+    setGlobalSettings(themeSettings)
+    setThemeName(name)
+    setSlides(prev => applyImageDuration(prev, themeSettings.imageDurationSecs))
   }, [])
 
   const handleSlideClick = useCallback((id: string) => {
@@ -293,7 +305,9 @@ export function App() {
           <aside className="sidebar">
             <GlobalSettingsPanel
               onChange={handleSettingsChange}
+              onThemeChange={handleThemeChange}
               settings={globalSettings}
+              themeName={themeName}
             />
             <SoundtrackPanel
               audioTracks={audioTracks}
