@@ -9,6 +9,7 @@ import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { MediaSlide, TitleSlide } from '../timeline-core/types'
+import { useSoundtrackVolume } from './soundtrackVolume'
 
 type MediaRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: MediaSlide }
 type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide }
@@ -62,7 +63,7 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   return (
     <AbsoluteFill>
       {plan.soundtrack ? (
-        <Html5Audio src={plan.soundtrack.blobUrl} volume={plan.soundtrack.volume} />
+        <SoundtrackAudio track={plan.soundtrack} />
       ) : null}
       <TransitionSeries>
       {plan.entries.map((entry) => (
@@ -85,6 +86,11 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
     </TransitionSeries>
     </AbsoluteFill>
   )
+}
+
+function SoundtrackAudio({ track }: { track: NonNullable<RenderPlan['soundtrack']> }) {
+  const volume = useSoundtrackVolume(track.duckingEnvelope)
+  return <Html5Audio src={track.blobUrl} volume={volume} />
 }
 
 function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {
@@ -130,7 +136,7 @@ function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {
 }
 
 function MediaSlideView({ entry }: { entry: MediaRenderPlanEntry }) {
-  const { slide, fitMode, kenBurns, durationInFrames } = entry
+  const { fitMode, kenBurns, durationInFrames, slide, videoVolume } = entry
   const frame = useCurrentFrame()
 
   // Compute Ken Burns transform (images only; null for videos).
@@ -152,8 +158,10 @@ function MediaSlideView({ entry }: { entry: MediaRenderPlanEntry }) {
     return (
       <AbsoluteFill style={{ background: '#000' }}>
         <Video
+          muted={videoVolume === 0}
           src={slide.blobUrl}
-          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          style={{ height: '100%', objectFit: 'contain', width: '100%' }}
+          volume={videoVolume}
         />
       </AbsoluteFill>
     )

@@ -2,6 +2,7 @@ import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
+import { buildDuckingEnvelope, resolveVideoVolume } from './ducking'
 import type {
   KenBurnsVector,
   MediaMetadata,
@@ -13,7 +14,7 @@ import type {
 
 export type SoundtrackInput = Pick<SoundtrackTrack, 'blobUrl' | 'durationInFrames'>
 
-const DEFAULT_SOUNDTRACK_VOLUME = 1
+export { DUCK_LEVEL, DUCK_RAMP_FRAMES, FULL_VOLUME, getUnmutedVideoAudioSpans } from './ducking'
 
 const FPS = 30
 
@@ -42,7 +43,10 @@ export function plan(
     return {
       entries: [],
       soundtrack: soundtrack
-        ? { ...soundtrack, volume: DEFAULT_SOUNDTRACK_VOLUME }
+        ? {
+            ...soundtrack,
+            duckingEnvelope: buildDuckingEnvelope([]),
+          }
         : undefined,
       totalFrames: 0,
     }
@@ -116,6 +120,7 @@ export function plan(
       transitionIn,
       fitMode: getFitMode(slide),
       kenBurns,
+      videoVolume: resolveVideoVolume(slide),
     })
 
     // Advance by this slide's duration minus the NEXT slide's inbound transition overlap.
@@ -129,7 +134,10 @@ export function plan(
   return {
     entries,
     soundtrack: soundtrack
-      ? { ...soundtrack, volume: DEFAULT_SOUNDTRACK_VOLUME }
+      ? {
+          ...soundtrack,
+          duckingEnvelope: buildDuckingEnvelope(entries),
+        }
       : undefined,
     totalFrames: cursor,
   }
