@@ -5,6 +5,7 @@ export type TransitionType = 'crossfade' | 'dip-to-black' | 'cut'
 export type FitMode = 'cover' | 'contain' | 'blur-fill'
 export type KenBurnsMode = 'alternate' | 'zoom-in-only'
 export type ThemeName = 'classic' | 'energetic' | 'plain'
+export type Energy = 'calm' | 'medium' | 'punchy'
 
 export type GlobalSettings = {
   imageDurationSecs: number
@@ -12,6 +13,8 @@ export type GlobalSettings = {
   kenBurns: boolean
   fitMode: FitMode
   kenBurnsMode?: KenBurnsMode
+  beatSync?: boolean
+  energy?: Energy
 }
 
 export type SlideAudioOverrides = {
