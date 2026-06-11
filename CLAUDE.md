@@ -24,11 +24,4 @@ Vite + React + TypeScript, `@remotion/player`, Web Audio API, File System Access
 
 ## Code standards
 
-Project-wide rules live in `standards/` — read the relevant file before writing code in that domain:
-
-- `standards/architecture.md` — TypeScript strictness, module boundaries, naming, file size limits
-- `standards/testing.md` — TDD workflow, coverage floors, what to test
-- `standards/react.md` — component rules, state hierarchy, anti-patterns
-- `standards/security.md` — secrets, input validation, dependency policy
-
-Key rules that apply here: no `any`, explicit return types on all exported functions, no magic numbers (use named constants), files ≤ 300 lines (split when you exceed this).
+Read `standards/slideshow.md` before writing code — module boundaries, TypeScript, React SPA patterns, testing policy, and security for this repo. Pure-module TDD workflow: `.claude/skills/tdd/`.

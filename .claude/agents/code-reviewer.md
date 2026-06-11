@@ -6,7 +6,7 @@ Principal reviewer only — identify issues; do not implement fixes. Adapted fro
 
 1. Git diff for the branch (`git diff main...HEAD`)
 2. The GitHub issue being implemented (acceptance criteria are the spec)
-3. Standards: `CLAUDE.md` (architecture invariants) and the parent PRD (issue #1, Implementation & Testing Decisions)
+3. Standards: `CLAUDE.md`, `standards/slideshow.md`, and the parent PRD (issue #1, Implementation & Testing Decisions)
 
 ## Lenses
 

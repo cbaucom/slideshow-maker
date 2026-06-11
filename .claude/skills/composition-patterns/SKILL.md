@@ -8,7 +8,7 @@ metadata:
 
 ## When to use
 
-Load this skill before adding or refactoring UI in `src/editor-shell/`. Read `standards/react.md` and `standards/architecture.md` alongside these rules.
+Load this skill before adding or refactoring UI in `src/editor-shell/`. Read `standards/slideshow.md` alongside these rules.
 
 Triggers:
 
