@@ -5,7 +5,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { GlobalSettings, ThemeName } from '../timeline-core'
 import type { AudioTrack } from '../project-store'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
@@ -40,7 +39,9 @@ export function EditorSidebar({
 }: Props) {
   return (
     <aside className="flex h-full min-h-0 flex-col bg-card">
-      <ScrollArea className="min-h-0 flex-1">
+      {/* native scroll, not ScrollArea: Radix's viewport sizes content to its
+          intrinsic width, so one long filename pushes every control off-panel */}
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <Accordion
           type="multiple"
           defaultValue={['settings', 'soundtrack', 'music']}
@@ -74,13 +75,14 @@ export function EditorSidebar({
           {jamendoClientId && (
             <AccordionItem value="music">
               <AccordionTrigger className="py-3 text-sm">Find Music (Jamendo)</AccordionTrigger>
-              <AccordionContent>
+              {/* forceMount so collapsing doesn't wipe in-progress search state */}
+              <AccordionContent forceMount>
                 <JamendoPanel clientId={jamendoClientId} onAdd={onJamendoAdd} />
               </AccordionContent>
             </AccordionItem>
           )}
         </Accordion>
-      </ScrollArea>
+      </div>
       <div className="shrink-0 border-t p-3">
         <Button variant="outline" size="sm" className="w-full" onClick={onAddTitleSlide}>
           + Add Title Slide

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { searchTracks } from '../jamendo/client'
 
@@ -101,8 +100,10 @@ export function JamendoPanel({ clientId, onAdd }: Props) {
       </form>
 
       {state.status === 'results' && (
-        <ScrollArea className="h-64 rounded-md border">
-          <ul aria-label="Search results" className="flex flex-col">
+        <ul
+          aria-label="Search results"
+          className="flex h-64 flex-col overflow-x-hidden overflow-y-auto rounded-md border"
+        >
             {state.tracks.map(track => (
               <li
                 key={track.id}
@@ -134,8 +135,7 @@ export function JamendoPanel({ clientId, onAdd }: Props) {
                 </div>
               </li>
             ))}
-          </ul>
-        </ScrollArea>
+        </ul>
       )}
 
       {addError && (
