@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
@@ -11,7 +12,7 @@ import {
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme } from '../timeline-core'
-import { plan } from '../sequence-planner'
+import { plan, slideIdAtFrame, startFrameForSlideId } from '../sequence-planner'
 import { AppHeader } from './AppHeader'
 import { DropImportLayer } from './DropImportLayer'
 import { EditorLayout } from './EditorLayout'
@@ -24,6 +25,8 @@ import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
 
 export function App() {
+  const playerRef = useRef<PlayerRef>(null)
+  const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
 
   const clearSelection = useCallback(() => setSelectedSlideId(null), [])
@@ -66,10 +69,6 @@ export function App() {
     setSlides(prev => applyImageDuration(prev, themeSettings.imageDurationSecs))
   }, [setGlobalSettings, setSlides, setThemeName])
 
-  const handleSlideClick = useCallback((id: string) => {
-    setSelectedSlideId(prev => prev === id ? null : id)
-  }, [])
-
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))
   }, [setSlides])
@@ -107,6 +106,18 @@ export function App() {
     [globalSettings, selectedSoundtrack, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
+
+  const handleFrameChange = useCallback((frame: number) => {
+    setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
+  }, [renderPlan])
+
+  const handleSlideClick = useCallback((id: string) => {
+    const startFrame = startFrameForSlideId(renderPlan, id)
+    if (startFrame !== null) {
+      playerRef.current?.seekTo(startFrame)
+    }
+    setSelectedSlideId((previousId) => (previousId === id ? null : id))
+  }, [renderPlan])
 
   const selectedSlide: Slide | null = selectedSlideId ? slides.find(s => s.id === selectedSlideId) ?? null : null
 
@@ -155,14 +166,22 @@ export function App() {
       <main className="flex min-h-0 flex-1 flex-col">
         {folderOpen ? (
           <EditorLayout
-            player={<PlayerPane renderPlan={renderPlan} totalFrames={totalFrames} />}
+            player={(
+              <PlayerPane
+                onFrameChange={handleFrameChange}
+                playerRef={playerRef}
+                renderPlan={renderPlan}
+                totalFrames={totalFrames}
+              />
+            )}
             filmstrip={slides.length > 0 ? (
               <StoryboardFilmstrip
-                slides={slides}
-                selectedSlideId={selectedSlideId}
+                currentSlideId={currentSlideId}
                 onReorder={handleReorder}
-                onToggleExclude={handleToggleExclude}
                 onSlideClick={handleSlideClick}
+                onToggleExclude={handleToggleExclude}
+                selectedSlideId={selectedSlideId}
+                slides={slides}
               />
             ) : null}
             sidebar={
