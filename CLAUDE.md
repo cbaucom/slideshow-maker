@@ -13,7 +13,7 @@ Local-first web app: hand-curated slideshows with automatic, Apple-Memories-grad
 ## Architecture (non-negotiable)
 
 - **Decisions live in pure modules**: Timeline Core (domain + settings cascade), Beat Grid (audio analysis math), Sequence Planner (`(timeline, beatGrid, mediaMetadata) → RenderPlan`). Everything downstream executes the RenderPlan and decides nothing.
-- **Composition (Remotion) and Editor Shell stay thin.** Load the `remotion-best-practices` skill before touching composition/player code.
+- **Composition (Remotion) and Editor Shell stay thin.** Load the `remotion-best-practices` skill before touching composition/player code. Load the `composition-patterns` skill before adding or refactoring `src/editor-shell/` UI.
 - **Determinism**: no wall-clock time or unseeded randomness anywhere the Composition consumes — export depends on it. Variation derives from slide index/seed in the RenderPlan.
 - **Project = folder**: media referenced by filename; all state in `slideshow.json` (schema-versioned) written into the user's folder via the Project Store. No backend, ever.
 - **Settings are a cascade** (global → per-slide). Themes and "Plain mode" are settings data, never special-cased code.
@@ -24,11 +24,4 @@ Vite + React + TypeScript, `@remotion/player`, Web Audio API, File System Access
 
 ## Code standards
 
-Project-wide rules live in `standards/` — read the relevant file before writing code in that domain:
-
-- `standards/architecture.md` — TypeScript strictness, module boundaries, naming, file size limits
-- `standards/testing.md` — TDD workflow, coverage floors, what to test
-- `standards/react.md` — component rules, state hierarchy, anti-patterns
-- `standards/security.md` — secrets, input validation, dependency policy
-
-Key rules that apply here: no `any`, explicit return types on all exported functions, no magic numbers (use named constants), files ≤ 300 lines (split when you exceed this).
+Read `standards/slideshow.md` before writing code — module boundaries, TypeScript, React SPA patterns, testing policy, and security for this repo. Pure-module TDD workflow: `.claude/skills/tdd/`.
