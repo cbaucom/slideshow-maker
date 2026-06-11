@@ -8,6 +8,10 @@ import { loadFont } from '@remotion/google-fonts/Inter'
 import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
+import type { MediaSlide, TitleSlide } from '../timeline-core/types'
+
+type MediaRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: MediaSlide }
+type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide }
 
 const { fontFamily } = loadFont('normal', { weights: ['400', '700'], subsets: ['latin'] })
 
@@ -67,9 +71,9 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
           )}
           <TransitionSeries.Sequence durationInFrames={entry.durationInFrames} premountFor={30}>
             {isTitleSlide(entry.slide) ? (
-              <TitleSlideView entry={entry} />
+              <TitleSlideView entry={entry as TitleRenderPlanEntry} />
             ) : (
-              <MediaSlideView entry={entry} />
+              <MediaSlideView entry={entry as MediaRenderPlanEntry} />
             )}
           </TransitionSeries.Sequence>
         </React.Fragment>
@@ -78,9 +82,8 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   )
 }
 
-function TitleSlideView({ entry }: { entry: RenderPlanEntry }) {
+function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {
   const { slide } = entry
-  if (!isTitleSlide(slide)) return null
   const bg = slide.style === 'light' ? '#fff' : '#111'
   const fg = slide.style === 'light' ? '#111' : '#f0f0f0'
 
@@ -121,9 +124,8 @@ function TitleSlideView({ entry }: { entry: RenderPlanEntry }) {
   )
 }
 
-function MediaSlideView({ entry }: { entry: RenderPlanEntry }) {
+function MediaSlideView({ entry }: { entry: MediaRenderPlanEntry }) {
   const { slide, fitMode, kenBurns, durationInFrames } = entry
-  if (isTitleSlide(slide)) return null
   const frame = useCurrentFrame()
 
   // Compute Ken Burns transform (images only; null for videos).
