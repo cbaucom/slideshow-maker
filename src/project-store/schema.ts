@@ -1,4 +1,4 @@
-import type { GlobalSettings, SlideOverrides } from '../timeline-core/settings'
+import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
 
 export const SCHEMA_VERSION = 1
 export const SLIDESHOW_FILE = 'slideshow.json'
@@ -30,6 +30,7 @@ export type SlideshowJson = {
   schemaVersion: number
   slides: SerializedSlide[]
   soundtrackFilename?: string
+  themeName?: ThemeName
 }
 
 export function isSlideshowJson(v: unknown): v is SlideshowJson {

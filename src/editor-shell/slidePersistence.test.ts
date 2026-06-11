@@ -26,4 +26,14 @@ describe('slidesToJson', () => {
     const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null)
     expect(json.soundtrackFilename).toBeUndefined()
   })
+
+  it('includes themeName when a theme is active', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, 'classic')
+    expect(json.themeName).toBe('classic')
+  })
+
+  it('omits themeName when null', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, null)
+    expect(json.themeName).toBeUndefined()
+  })
 })

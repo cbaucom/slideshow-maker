@@ -1,6 +1,6 @@
 import type { MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
-import type { GlobalSettings } from '../timeline-core'
+import type { GlobalSettings, ThemeName } from '../timeline-core'
 import { SCHEMA_VERSION, type SlideshowJson } from '../project-store'
 
 export function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson): Slide[] {
@@ -31,11 +31,13 @@ export function slidesToJson(
   globalSettings: GlobalSettings,
   slides: Slide[],
   soundtrackFilename?: string | null,
+  themeName?: ThemeName | null,
 ): SlideshowJson {
   return {
     globalSettings,
     schemaVersion: SCHEMA_VERSION,
     ...(soundtrackFilename ? { soundtrackFilename } : {}),
+    ...(themeName ? { themeName } : {}),
     slides: slides.map(slide => {
       if (isTitleSlide(slide)) {
         return {

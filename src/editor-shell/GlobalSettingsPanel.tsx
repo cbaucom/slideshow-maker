@@ -1,11 +1,21 @@
-import type { GlobalSettings, TransitionType, FitMode } from '../timeline-core/settings'
+import type { GlobalSettings, TransitionType, FitMode, ThemeName } from '../timeline-core/settings'
+
+const THEME_LABELS: Record<ThemeName, string> = {
+  classic: 'Classic',
+  energetic: 'Energetic',
+  plain: 'Plain',
+}
+
+const THEME_NAMES: ThemeName[] = ['classic', 'energetic', 'plain']
 
 type Props = {
   settings: GlobalSettings
   onChange: (updated: GlobalSettings) => void
+  onThemeChange: (name: ThemeName) => void
+  themeName: ThemeName | null
 }
 
-export function GlobalSettingsPanel({ settings, onChange }: Props) {
+export function GlobalSettingsPanel({ settings, onChange, onThemeChange, themeName }: Props) {
   function set<K extends keyof GlobalSettings>(key: K, value: GlobalSettings[K]) {
     onChange({ ...settings, [key]: value })
   }
@@ -13,6 +23,22 @@ export function GlobalSettingsPanel({ settings, onChange }: Props) {
   return (
     <div className="settings-panel">
       <h2 className="settings-title">Settings</h2>
+
+      <div className="settings-row theme-row">
+        <span className="settings-label">Theme</span>
+        <div className="theme-buttons">
+          {THEME_NAMES.map(name => (
+            <button
+              key={name}
+              className={`theme-btn${themeName === name ? ' theme-btn--active' : ''}`}
+              onClick={() => onThemeChange(name)}
+              type="button"
+            >
+              {THEME_LABELS[name]}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="settings-row">
         <span className="settings-label">Image duration</span>

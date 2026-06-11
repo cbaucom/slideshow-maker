@@ -3,8 +3,10 @@ import {
   resolve,
   applyImageDuration,
   DEFAULT_GLOBAL_SETTINGS,
+  THEMES,
+  applyTheme,
 } from './settings'
-import type { GlobalSettings } from './settings'
+import type { GlobalSettings, ThemeName } from './settings'
 import type { MediaSlide } from './types'
 import { createTitleSlide } from './timeline'
 
@@ -120,5 +122,55 @@ describe('applyImageDuration', () => {
     const overridden: MediaSlide = { ...imgSlide('a', 90), overrides: { imageDurationSecs: 8 } }
     const result = applyImageDuration([overridden], 3)
     expect(result[0].durationInFrames).toBe(90) // unchanged; planner uses overrides.imageDurationSecs
+  })
+})
+
+// --- THEMES ---
+
+describe('THEMES: preset definitions', () => {
+  const THEME_NAMES: ThemeName[] = ['classic', 'energetic', 'plain']
+
+  it('has an entry for every theme name', () => {
+    for (const name of THEME_NAMES) {
+      expect(THEMES[name]).toBeDefined()
+    }
+  })
+
+  it('Classic: crossfade transition, ken burns on', () => {
+    expect(THEMES.classic.transitionType).toBe('crossfade')
+    expect(THEMES.classic.kenBurns).toBe(true)
+  })
+
+  it('Energetic: cut transition, ken burns on, faster pacing', () => {
+    expect(THEMES.energetic.transitionType).toBe('cut')
+    expect(THEMES.energetic.kenBurns).toBe(true)
+    expect(THEMES.energetic.imageDurationSecs).toBeLessThan(THEMES.classic.imageDurationSecs)
+  })
+
+  it('Plain: cut transition, ken burns off', () => {
+    expect(THEMES.plain.transitionType).toBe('cut')
+    expect(THEMES.plain.kenBurns).toBe(false)
+  })
+})
+
+// --- applyTheme ---
+
+describe('applyTheme', () => {
+  it('returns a GlobalSettings matching the named theme', () => {
+    const result = applyTheme('classic')
+    expect(result.transitionType).toBe(THEMES.classic.transitionType)
+    expect(result.kenBurns).toBe(THEMES.classic.kenBurns)
+  })
+
+  it('applying Plain theme gives cut transition and kenBurns false', () => {
+    const result = applyTheme('plain')
+    expect(result.transitionType).toBe('cut')
+    expect(result.kenBurns).toBe(false)
+  })
+
+  it('returns a new object (does not mutate a shared preset)', () => {
+    const a = applyTheme('classic')
+    const b = applyTheme('classic')
+    expect(a).not.toBe(b)
   })
 })
