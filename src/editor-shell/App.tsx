@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Player } from '@remotion/player'
+import { useCallback, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import {
@@ -7,214 +7,62 @@ import {
   toggleExcluded,
   filterIncluded,
   applyImageDuration,
-  DEFAULT_GLOBAL_SETTINGS,
   createTitleSlide,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme } from '../timeline-core'
-import {
-  addRecentProject,
-  enumerateAudioTracks,
-  listRecentProjects,
-  openProject,
-  requestHandlePermission,
-  revokeAudioBlobUrls,
-  saveProject,
-  type AudioTrack,
-  type RecentProject,
-  type SlideshowJson,
-} from '../project-store'
-import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import { plan } from '../sequence-planner'
-import { SlideshowComposition } from '../composition'
-import { StoryboardGrid } from './StoryboardGrid'
-import { GlobalSettingsPanel } from './GlobalSettingsPanel'
-import { SoundtrackPanel } from './SoundtrackPanel'
-import { JamendoPanel } from './JamendoPanel'
+import { AppHeader } from './AppHeader'
+import { EditorLayout } from './EditorLayout'
+import { EditorSidebar } from './EditorSidebar'
+import { EmptyState } from './EmptyState'
+import { PlayerPane, FPS } from './PlayerPane'
+import { StoryboardFilmstrip } from './StoryboardFilmstrip'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
-import { reconcileSlides, slidesToJson } from './slidePersistence'
-import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
-import { downloadTrack, sanitizeFilename } from '../jamendo'
-import './App.css'
-
-const FPS = 30
-const COMP_WIDTH = 1920
-const COMP_HEIGHT = 1080
-const AUTOSAVE_DELAY = 2000
+import { useProject } from './useProject'
 
 export function App() {
-  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
-  const [slides, setSlides] = useState<Slide[]>([])
-  const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
-  const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
-  const [themeName, setThemeName] = useState<ThemeName | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [corruptError, setCorruptError] = useState<string | null>(null)
-  const [folderOpen, setFolderOpen] = useState(false)
-  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
 
-  const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
-  const pendingAudioRevokeRef = useRef<AudioTrack[]>([])
-  const pendingRevokeRef = useRef<Slide[]>([])
-  const latestAudioTracksRef = useRef<AudioTrack[]>([])
-  const latestSlidesRef = useRef<Slide[]>([])
-  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    listRecentProjects().then(setRecentProjects).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    revokeAudioBlobUrls(pendingAudioRevokeRef.current)
-    pendingAudioRevokeRef.current = []
-    latestAudioTracksRef.current = audioTracks
-  }, [audioTracks])
-
-  useEffect(() => {
-    revokeSlideBlobUrls(pendingRevokeRef.current)
-    pendingRevokeRef.current = []
-    latestSlidesRef.current = slides
-  }, [slides])
-
-  useEffect(() => {
-    return () => {
-      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
-      revokeAudioBlobUrls(latestAudioTracksRef.current)
-      revokeSlideBlobUrls(latestSlidesRef.current)
-    }
-  }, [])
-
-  // Autosave on slides or settings change
-  useEffect(() => {
-    const handle = dirHandleRef.current
-    if (!handle) return
-    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
-    autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName, soundtrackAttribution)).catch(console.error)
-    }, AUTOSAVE_DELAY)
-  }, [globalSettings, slides, soundtrackFilename, soundtrackAttribution, themeName])
-
-  const loadFolder = useCallback(
-    async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const enumerated = await enumerateFolder(handle)
-        const nextAudioTracks = await enumerateAudioTracks(handle)
-        const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
-        const restoredThemeName = savedData?.themeName ?? null
-        const savedSoundtrack = savedData?.soundtrackFilename ?? null
-        const validSoundtrack =
-          savedSoundtrack && nextAudioTracks.some((track) => track.filename === savedSoundtrack)
-            ? savedSoundtrack
-            : null
-        const restoredAttribution = validSoundtrack ? (savedData?.soundtrackAttribution ?? null) : null
-        let finalSlides: Slide[] = savedData ? reconcileSlides(enumerated, savedData) : enumerated
-        // Apply global duration only to media slides not already in savedData (new files added to folder).
-        const savedFilenames = new Set(
-          savedData?.slides.flatMap(s => ('filename' in s ? [s.filename] : [])) ?? [],
-        )
-        finalSlides = finalSlides.map(s => {
-          if (isTitleSlide(s)) return s
-          return s.type === 'image' && !savedFilenames.has(s.filename)
-            ? { ...s, durationInFrames: Math.round(restoredSettings.imageDurationSecs * FPS) }
-            : s
-        })
-        pendingAudioRevokeRef.current = audioTracks
-        pendingRevokeRef.current = latestSlidesRef.current
-        setAudioTracks(nextAudioTracks)
-        setGlobalSettings(restoredSettings)
-        setThemeName(restoredThemeName)
-        setSlides(finalSlides)
-        setSoundtrackFilename(validSoundtrack)
-        setSoundtrackAttribution(restoredAttribution)
-        setFolderOpen(true)
-        setSelectedSlideId(null)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to read folder')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [audioTracks],
-  )
-
-  const openFolder = useCallback(
-    async (handle: FileSystemDirectoryHandle) => {
-      dirHandleRef.current = handle
-      const result = await openProject(handle)
-      setCorruptError(null)
-      if (result.status === 'corrupt') {
-        setCorruptError(result.error)
-        await loadFolder(handle)
-        return
-      }
-      await loadFolder(handle, result.data)
-      await addRecentProject(handle).catch(() => {})
-      setRecentProjects(await listRecentProjects().catch(() => []))
-    },
-    [loadFolder],
-  )
-
-  const handlePickFolder = useCallback(async () => {
-    try {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
-      await openFolder(handle)
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return
-      setError('Could not open folder')
-    }
-  }, [openFolder])
-
-  const handleRefresh = useCallback(async () => {
-    const handle = dirHandleRef.current
-    if (!handle) return
-    const result = await openProject(handle)
-    if (result.status === 'corrupt') {
-      setCorruptError(result.error)
-      await loadFolder(handle)
-      return
-    }
-    setCorruptError(null)
-    await loadFolder(handle, result.data)
-  }, [loadFolder])
-
-  const handleOpenRecent = useCallback(
-    async (project: RecentProject) => {
-      const permission = await requestHandlePermission(project.handle).catch(() => 'denied' as const)
-      if (permission !== 'granted') {
-        setError(`Permission denied for "${project.name}". Try opening the folder manually.`)
-        return
-      }
-      await openFolder(project.handle)
-    },
-    [openFolder],
-  )
+  const clearSelection = useCallback(() => setSelectedSlideId(null), [])
+  const project = useProject({ onFolderLoaded: clearSelection })
+  const {
+    audioTracks,
+    globalSettings,
+    setGlobalSettings,
+    slides,
+    setSlides,
+    soundtrackFilename,
+    themeName,
+    setThemeName,
+    loading,
+    error,
+    corruptError,
+    folderOpen,
+    recentProjects,
+  } = project
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
     setSlides(prev => moveSlide(prev, fromIndex, toIndex))
-  }, [])
+  }, [setSlides])
 
   const handleToggleExclude = useCallback((id: string) => {
     setSlides(prev => toggleExcluded(prev, id))
-  }, [])
+  }, [setSlides])
 
   const handleSettingsChange = useCallback((updated: GlobalSettings) => {
     setGlobalSettings(updated)
     setThemeName(null)
     setSlides(prev => applyImageDuration(prev, updated.imageDurationSecs))
-  }, [])
+  }, [setGlobalSettings, setSlides, setThemeName])
 
   const handleThemeChange = useCallback((name: ThemeName) => {
     const themeSettings = applyTheme(name)
     setGlobalSettings(themeSettings)
     setThemeName(name)
     setSlides(prev => applyImageDuration(prev, themeSettings.imageDurationSecs))
-  }, [])
+  }, [setGlobalSettings, setSlides, setThemeName])
 
   const handleSlideClick = useCallback((id: string) => {
     setSelectedSlideId(prev => prev === id ? null : id)
@@ -222,38 +70,18 @@ export function App() {
 
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))
-  }, [])
+  }, [setSlides])
 
   const handleAddTitleSlide = useCallback(() => {
     setSlides(prev => [...prev, createTitleSlide(crypto.randomUUID())])
-  }, [])
+  }, [setSlides])
 
   const handleUpdateTitleSlide = useCallback((
     id: string,
     updates: Partial<Pick<TitleSlide, 'heading' | 'subtext' | 'style' | 'durationInFrames'>>,
   ) => {
     setSlides(prev => prev.map(s => (s.id === id && isTitleSlide(s) ? { ...s, ...updates } : s)))
-  }, [])
-
-  const handleJamendoAdd = useCallback(async (track: JamendoTrack, attribution: JamendoAttribution) => {
-    const handle = dirHandleRef.current
-    if (!handle) return
-    const filename = sanitizeFilename(`${track.artistName} - ${track.name}`)
-    await downloadTrack(track.audioUrl, filename, handle)
-    try {
-      const nextAudioTracks = await enumerateAudioTracks(handle)
-      pendingAudioRevokeRef.current = latestAudioTracksRef.current
-      setAudioTracks(nextAudioTracks)
-      setSoundtrackFilename(filename)
-      setSoundtrackAttribution(attribution)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to refresh audio tracks')
-    }
-  }, [])
-
-  const handleStartFresh = useCallback(() => {
-    setCorruptError(null)
-  }, [])
+  }, [setSlides])
 
   const selectedSoundtrack = useMemo(
     () => (soundtrackFilename
@@ -281,100 +109,69 @@ export function App() {
   const selectedSlide: Slide | null = selectedSlideId ? slides.find(s => s.id === selectedSlideId) ?? null : null
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Slideshow Maker</h1>
-        <div className="header-actions">
-          <button onClick={handlePickFolder} disabled={loading}>
-            Open Folder
-          </button>
-          {folderOpen && (
-            <button onClick={handleRefresh} disabled={loading}>
-              Refresh
-            </button>
-          )}
-        </div>
-      </header>
+    <div className="flex h-full flex-col overflow-hidden">
+      <AppHeader
+        folderOpen={folderOpen}
+        loading={loading}
+        onPickFolder={project.pickFolder}
+        onRefresh={project.refresh}
+      />
 
-      {error && <div className="error-banner">{error}</div>}
-
-      {corruptError && (
-        <div className="error-banner">
-          <strong>Could not restore project:</strong> {corruptError}
-          <button onClick={handleStartFresh} style={{ marginLeft: 8 }}>
-            Start Fresh
-          </button>
+      {error && (
+        <div className="shrink-0 border-b border-destructive/30 bg-destructive/15 px-4 py-2 text-sm text-destructive">
+          {error}
         </div>
       )}
 
-      {loading && <div className="loading-bar">Loading media…</div>}
-
-      <main className="app-main">
-        <div className="preview-pane">
-          <Player
-            component={SlideshowComposition}
-            durationInFrames={totalFrames}
-            compositionWidth={COMP_WIDTH}
-            compositionHeight={COMP_HEIGHT}
-            fps={FPS}
-            inputProps={{ plan: renderPlan }}
-            controls
-            style={{ width: '100%', aspectRatio: `${COMP_WIDTH}/${COMP_HEIGHT}` }}
-          />
+      {corruptError && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-destructive/30 bg-destructive/15 px-4 py-2 text-sm text-destructive">
+          <span>
+            <strong>Could not restore project:</strong> {corruptError}
+          </span>
+          <Button size="xs" variant="outline" onClick={project.dismissCorruptError}>
+            Start Fresh
+          </Button>
         </div>
+      )}
 
-        {folderOpen && (
-          <aside className="sidebar">
-            <GlobalSettingsPanel
-              onChange={handleSettingsChange}
-              onThemeChange={handleThemeChange}
-              settings={globalSettings}
-              themeName={themeName}
-            />
-            <SoundtrackPanel
-              audioTracks={audioTracks}
-              onChange={filename => { setSoundtrackFilename(filename); setSoundtrackAttribution(null) }}
-              soundtrackFilename={soundtrackFilename}
-            />
-            {import.meta.env.VITE_JAMENDO_CLIENT_ID && (
-              <JamendoPanel
-                clientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
-                onAdd={handleJamendoAdd}
-              />
-            )}
-            <div className="sidebar-actions">
-              <button onClick={handleAddTitleSlide} className="add-title-btn">
-                + Add Title Slide
-              </button>
-            </div>
-            {slides.length > 0 && (
-              <StoryboardGrid
+      {loading && (
+        <div className="shrink-0 border-b bg-blue-950/40 px-4 py-1.5 text-sm text-blue-300">
+          Loading media…
+        </div>
+      )}
+
+      <main className="flex min-h-0 flex-1 flex-col">
+        {folderOpen ? (
+          <EditorLayout
+            player={<PlayerPane renderPlan={renderPlan} totalFrames={totalFrames} />}
+            filmstrip={slides.length > 0 ? (
+              <StoryboardFilmstrip
                 slides={slides}
                 selectedSlideId={selectedSlideId}
                 onReorder={handleReorder}
                 onToggleExclude={handleToggleExclude}
                 onSlideClick={handleSlideClick}
               />
-            )}
-          </aside>
-        )}
-
-        {!folderOpen && !loading && (
-          <div className="empty-state">
-            <p>Pick a folder containing photos and videos to get started.</p>
-            {recentProjects.length > 0 && (
-              <div className="recent-projects">
-                <p>Recent projects:</p>
-                <ul>
-                  {recentProjects.map((p) => (
-                    <li key={p.name}>
-                      <button onClick={() => handleOpenRecent(p)}>{p.name}</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+            ) : null}
+            sidebar={
+              <EditorSidebar
+                settings={globalSettings}
+                themeName={themeName}
+                onSettingsChange={handleSettingsChange}
+                onThemeChange={handleThemeChange}
+                audioTracks={audioTracks}
+                soundtrackFilename={soundtrackFilename}
+                onSoundtrackChange={project.changeSoundtrack}
+                jamendoClientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
+                onJamendoAdd={project.addJamendoTrack}
+                onAddTitleSlide={handleAddTitleSlide}
+              />
+            }
+          />
+        ) : (
+          !loading && (
+            <EmptyState recentProjects={recentProjects} onOpenRecent={project.openRecent} />
+          )
         )}
       </main>
 

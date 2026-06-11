@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { searchTracks } from '../jamendo/client'
 
@@ -82,66 +85,71 @@ export function JamendoPanel({ clientId, onAdd }: Props) {
   }
 
   return (
-    <div className="settings-panel jamendo-panel">
-      <h2 className="settings-title">Find Music (Jamendo)</h2>
-
-      <form className="jamendo-search-form" onSubmit={handleSearch}>
-        <input
-          className="jamendo-search-input"
+    <div className="flex flex-col gap-2">
+      <form className="flex gap-1.5" onSubmit={handleSearch}>
+        <Input
           type="text"
+          className="h-7 min-w-0 flex-1"
           placeholder="Search by mood, genre, or keyword…"
           value={query}
           onChange={e => setQuery(e.target.value)}
           aria-label="Search Jamendo"
         />
-        <button className="jamendo-search-btn" type="submit" disabled={state.status === 'loading'}>
+        <Button size="sm" type="submit" disabled={state.status === 'loading'}>
           {state.status === 'loading' ? 'Searching…' : 'Search'}
-        </button>
+        </Button>
       </form>
 
       {state.status === 'results' && (
-        <ul className="jamendo-results" aria-label="Search results">
-          {state.tracks.map(track => (
-            <li key={track.id} className="jamendo-track">
-              <div className="jamendo-track-info">
-                <span className="jamendo-track-name">{track.name}</span>
-                <span className="jamendo-track-artist">{track.artistName}</span>
-                <span className="jamendo-track-duration">{formatDuration(track.durationSecs)}</span>
-              </div>
-              <div className="jamendo-track-actions">
-                <button
-                  className="jamendo-preview-btn"
-                  onClick={() => togglePreview(track)}
-                  aria-label={previewId === track.id ? `Stop preview of ${track.name}` : `Preview ${track.name}`}
-                >
-                  {previewId === track.id ? 'Stop' : 'Preview'}
-                </button>
-                <button
-                  className="jamendo-add-btn"
-                  onClick={() => handleAdd(track)}
-                  disabled={addingId === track.id}
-                  aria-label={`Add ${track.name} to project`}
-                >
-                  {addingId === track.id ? 'Adding…' : 'Add'}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ScrollArea className="h-64 rounded-md border">
+          <ul aria-label="Search results" className="flex flex-col">
+            {state.tracks.map(track => (
+              <li
+                key={track.id}
+                className="flex items-center gap-2 border-b px-2 py-1.5 last:border-b-0"
+              >
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm" title={track.name}>{track.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {track.artistName} · {formatDuration(track.durationSecs)}
+                  </span>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => togglePreview(track)}
+                    aria-label={previewId === track.id ? `Stop preview of ${track.name}` : `Preview ${track.name}`}
+                  >
+                    {previewId === track.id ? 'Stop' : 'Preview'}
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={() => handleAdd(track)}
+                    disabled={addingId === track.id}
+                    aria-label={`Add ${track.name} to project`}
+                  >
+                    {addingId === track.id ? 'Adding…' : 'Add'}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </ScrollArea>
       )}
 
       {addError && (
-        <p className="jamendo-error">{addError}</p>
+        <p className="text-xs text-destructive">{addError}</p>
       )}
 
       {state.status === 'empty' && (
-        <p className="jamendo-empty">
+        <p className="text-xs text-muted-foreground">
           No results found. Try different keywords, or drop an audio file into your project folder.
         </p>
       )}
 
       {state.status === 'error' && (
-        <p className="jamendo-error">
+        <p className="text-xs text-destructive">
           {state.message} — or drop an audio file into your project folder instead.
         </p>
       )}
