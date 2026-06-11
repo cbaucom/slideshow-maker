@@ -8,17 +8,17 @@ import type { RenderPlan } from '../sequence-planner'
 import { SlideshowComposition } from '../composition'
 
 export const FPS = 30
-export const COMP_WIDTH = 1920
-export const COMP_HEIGHT = 1080
 
 type Props = {
+  compositionHeight: number
+  compositionWidth: number
   onFrameChange: (frame: number) => void
   playerRef?: React.RefObject<PlayerRef | null>
   renderPlan: RenderPlan
   totalFrames: number
 }
 
-export function PlayerPane({ onFrameChange, playerRef, renderPlan, totalFrames }: Props) {
+export function PlayerPane({ compositionHeight, compositionWidth, onFrameChange, playerRef, renderPlan, totalFrames }: Props) {
   const embeddedHostRef = useRef<HTMLDivElement>(null)
   const presentationHostRef = useRef<HTMLDivElement>(null)
   const fallbackPlayerRef = useRef<PlayerRef>(null)
@@ -93,8 +93,8 @@ export function PlayerPane({ onFrameChange, playerRef, renderPlan, totalFrames }
         component={SlideshowComposition}
         controls
         durationInFrames={totalFrames}
-        compositionWidth={COMP_WIDTH}
-        compositionHeight={COMP_HEIGHT}
+        compositionWidth={compositionWidth}
+        compositionHeight={compositionHeight}
         fps={FPS}
         initialFrame={initialFrame}
         inputProps={{ plan: renderPlan }}

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
-import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
-import type { GlobalSettings, ThemeName } from '../timeline-core'
+import { DEFAULT_ASPECT_RATIO, DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
+import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import {
   addRecentProject,
   enumerateAudioTracks,
@@ -37,6 +37,7 @@ type Options = {
 }
 
 export function useProject({ onFolderLoaded }: Options = {}) {
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(DEFAULT_ASPECT_RATIO)
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [slides, setSlides] = useState<Slide[]>([])
@@ -87,9 +88,9 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName, soundtrackAttribution)).catch(console.error)
+      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName, soundtrackAttribution, aspectRatio)).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [globalSettings, slides, soundtrackFilename, soundtrackAttribution, themeName])
+  }, [aspectRatio, globalSettings, slides, soundtrackFilename, soundtrackAttribution, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -119,6 +120,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         })
         pendingAudioRevokeRef.current = audioTracks
         pendingRevokeRef.current = latestSlidesRef.current
+        setAspectRatio(savedData?.aspectRatio ?? DEFAULT_ASPECT_RATIO)
         setAudioTracks(nextAudioTracks)
         setGlobalSettings(restoredSettings)
         setThemeName(restoredThemeName)
@@ -249,6 +251,8 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   }, [globalSettings])
 
   return {
+    aspectRatio,
+    setAspectRatio,
     audioTracks,
     globalSettings,
     setGlobalSettings,
