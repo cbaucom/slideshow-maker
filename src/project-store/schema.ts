@@ -33,6 +33,7 @@ export type SlideshowJson = {
   soundtrackFilename?: string
   themeName?: ThemeName
   beatGridCache?: BeatGrid
+  manualBeatGrid?: BeatGrid
 }
 
 export function isSlideshowJson(v: unknown): v is SlideshowJson {
