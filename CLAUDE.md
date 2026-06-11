@@ -20,4 +20,15 @@ Local-first web app: hand-curated slideshows with automatic, Apple-Memories-grad
 
 ## Stack & testing
 
-Vite + React + TypeScript, `@remotion/player`, Web Audio API, File System Access API (Chromium), Jamendo API, Mediabunny for media metadata. Tests: Vitest, colocated per module. Pure modules get table-driven/golden/property tests; Project Store against in-memory FS fakes; Jamendo client against mocked responses. No live network or real filesystem in tests. `npm run test` and `npm run build` must pass before any PR.
+Vite + React + TypeScript, `@remotion/player`, Web Audio API, File System Access API (Chromium), Jamendo API, Mediabunny for media metadata. Tests: Vitest, colocated per module. Pure modules get table-driven/golden/property tests; Project Store against in-memory FS fakes; Jamendo client against mocked responses. No live network or real filesystem in tests. `pnpm test`, `pnpm build`, **and `pnpm lint`** must all pass before any PR.
+
+## Code standards
+
+Project-wide rules live in `standards/` — read the relevant file before writing code in that domain:
+
+- `standards/architecture.md` — TypeScript strictness, module boundaries, naming, file size limits
+- `standards/testing.md` — TDD workflow, coverage floors, what to test
+- `standards/react.md` — component rules, state hierarchy, anti-patterns
+- `standards/security.md` — secrets, input validation, dependency policy
+
+Key rules that apply here: no `any`, explicit return types on all exported functions, no magic numbers (use named constants), files ≤ 300 lines (split when you exceed this).
