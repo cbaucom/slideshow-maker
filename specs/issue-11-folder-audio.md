@@ -16,7 +16,7 @@
 | `project-store/schema.ts` | `soundtrackFilename?: string` on `SlideshowJson` |
 | `sequence-planner/types.ts` | `SoundtrackTrack` on `RenderPlan` |
 | `sequence-planner/planner.ts` | Optional soundtrack input → plan output |
-| `composition/SlideshowComposition.tsx` | `<Audio>` when plan has soundtrack |
+| `composition/SlideshowComposition.tsx` | `<Html5Audio>` when plan has soundtrack (Player-safe with blob URLs; `@remotion/media` Audio blocks on WebCodecs decode) |
 | `editor-shell/SoundtrackPanel.tsx` | Soundtrack picker |
 | `editor-shell/slidePersistence.ts` | Round-trip `soundtrackFilename` |
 | `editor-shell/App.tsx` | Wire audio state, autosave, plan |

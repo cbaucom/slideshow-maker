@@ -1,6 +1,6 @@
 import React from 'react'
-import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion'
-import { Audio, Video } from '@remotion/media'
+import { AbsoluteFill, Html5Audio, Img, interpolate, useCurrentFrame } from 'remotion'
+import { Video } from '@remotion/media'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { TransitionPresentation, TransitionPresentationComponentProps } from '@remotion/transitions'
@@ -60,9 +60,9 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   }
 
   return (
-    <>
+    <AbsoluteFill>
       {plan.soundtrack ? (
-        <Audio src={plan.soundtrack.blobUrl} volume={plan.soundtrack.volume} />
+        <Html5Audio src={plan.soundtrack.blobUrl} volume={plan.soundtrack.volume} />
       ) : null}
       <TransitionSeries>
       {plan.entries.map((entry) => (
@@ -83,7 +83,7 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
         </React.Fragment>
       ))}
     </TransitionSeries>
-    </>
+    </AbsoluteFill>
   )
 }
 
