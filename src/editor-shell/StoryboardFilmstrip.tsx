@@ -5,11 +5,12 @@ import type { Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 
 type Props = {
-  slides: Slide[]
-  selectedSlideId: string | null
+  currentSlideId: string | null
   onReorder: (fromIndex: number, toIndex: number) => void
-  onToggleExclude: (id: string) => void
   onSlideClick: (id: string) => void
+  onToggleExclude: (id: string) => void
+  selectedSlideId: string | null
+  slides: Slide[]
 }
 
 function hasOverrides(slide: Slide): boolean {
@@ -20,7 +21,14 @@ function slideLabel(slide: Slide): string {
   return isTitleSlide(slide) ? slide.heading || 'Title' : slide.filename
 }
 
-export function StoryboardFilmstrip({ slides, selectedSlideId, onReorder, onToggleExclude, onSlideClick }: Props) {
+export function StoryboardFilmstrip({
+  currentSlideId,
+  onReorder,
+  onSlideClick,
+  onToggleExclude,
+  selectedSlideId,
+  slides,
+}: Props) {
   const dragIndexRef = useRef<number | null>(null)
   const included = slides.filter(s => !s.excluded).length
 
@@ -30,6 +38,7 @@ export function StoryboardFilmstrip({ slides, selectedSlideId, onReorder, onTogg
         {included === slides.length
           ? `${slides.length} slide${slides.length !== 1 ? 's' : ''}`
           : `${included} / ${slides.length} included`}
+        <span className="text-muted-foreground/70"> · green = now playing</span>
       </p>
       <ScrollArea className="min-h-0 flex-1">
         <ul className="flex items-start gap-2 p-3">
@@ -39,6 +48,7 @@ export function StoryboardFilmstrip({ slides, selectedSlideId, onReorder, onTogg
               className={cn(
                 'flex w-36 shrink-0 cursor-pointer flex-col gap-1 rounded-md border bg-background p-1.5 transition-colors hover:border-muted-foreground/60',
                 slide.excluded && 'opacity-60',
+                currentSlideId === slide.id && 'border-transparent ring-2 ring-emerald-500',
                 selectedSlideId === slide.id && 'border-transparent ring-2 ring-primary',
               )}
               draggable
