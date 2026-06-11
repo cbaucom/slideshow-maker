@@ -1,10 +1,15 @@
 export type MediaType = 'image' | 'video'
 
-const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'heic'])
-const VIDEO_EXTENSIONS = new Set(['mp4', 'mov'])
+const AUDIO_EXTENSIONS = new Set(['m4a', 'mp3', 'wav'])
+const IMAGE_EXTENSIONS = new Set(['heic', 'jpeg', 'jpg', 'png'])
+const VIDEO_EXTENSIONS = new Set(['mov', 'mp4'])
 
 function ext(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() ?? ''
+}
+
+export function isSupportedAudio(filename: string): boolean {
+  return AUDIO_EXTENSIONS.has(ext(filename))
 }
 
 export function isSupportedMedia(filename: string): boolean {

@@ -24,8 +24,15 @@ export type RenderPlanEntry = {
   kenBurns: KenBurnsVector | null
 }
 
+export type SoundtrackTrack = {
+  blobUrl: string
+  durationInFrames: number
+  volume: number
+}
+
 export type RenderPlan = {
   entries: RenderPlanEntry[]
+  soundtrack?: SoundtrackTrack
   totalFrames: number
 }
 
