@@ -53,4 +53,14 @@ describe('slidesToJson', () => {
     const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3', null, null)
     expect(json.soundtrackAttribution).toBeUndefined()
   })
+
+  it('includes aspectRatio when provided', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, null, null, '9:16')
+    expect(json.aspectRatio).toBe('9:16')
+  })
+
+  it('omits aspectRatio when not provided', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, null, null)
+    expect(json.aspectRatio).toBeUndefined()
+  })
 })
