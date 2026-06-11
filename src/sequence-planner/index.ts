@@ -1,2 +1,3 @@
 export { plan, TRANSITION_FRAMES } from './planner'
-export type { RenderPlan, RenderPlanEntry, TransitionSpec, MediaMetadata } from './types'
+export type { SoundtrackInput } from './planner'
+export type { MediaMetadata, RenderPlan, RenderPlanEntry, SoundtrackTrack, TransitionSpec } from './types'

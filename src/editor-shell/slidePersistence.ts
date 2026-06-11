@@ -27,10 +27,15 @@ export function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson):
   return ordered
 }
 
-export function slidesToJson(slides: Slide[], globalSettings: GlobalSettings): SlideshowJson {
+export function slidesToJson(
+  globalSettings: GlobalSettings,
+  slides: Slide[],
+  soundtrackFilename?: string | null,
+): SlideshowJson {
   return {
-    schemaVersion: SCHEMA_VERSION,
     globalSettings,
+    schemaVersion: SCHEMA_VERSION,
+    ...(soundtrackFilename ? { soundtrackFilename } : {}),
     slides: slides.map(slide => {
       if (isTitleSlide(slide)) {
         return {

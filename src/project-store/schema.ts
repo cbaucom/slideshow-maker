@@ -26,9 +26,10 @@ export type SerializedTitleSlide = {
 export type SerializedSlide = SerializedMediaSlide | SerializedTitleSlide
 
 export type SlideshowJson = {
-  schemaVersion: number
   globalSettings?: GlobalSettings
+  schemaVersion: number
   slides: SerializedSlide[]
+  soundtrackFilename?: string
 }
 
 export function isSlideshowJson(v: unknown): v is SlideshowJson {

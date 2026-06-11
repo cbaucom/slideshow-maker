@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isSupportedMedia, getMediaType, sortByFilename } from './media'
+import { getMediaType, isSupportedAudio, isSupportedMedia, sortByFilename } from './media'
 
 describe('isSupportedMedia', () => {
   it.each([
@@ -21,6 +21,22 @@ describe('isSupportedMedia', () => {
     ['notes.txt', false],
   ])('isSupportedMedia(%s) === %s', (filename, expected) => {
     expect(isSupportedMedia(filename)).toBe(expected)
+  })
+})
+
+describe('isSupportedAudio', () => {
+  it.each([
+    ['track.mp3', true],
+    ['track.MP3', true],
+    ['track.m4a', true],
+    ['track.M4A', true],
+    ['track.wav', true],
+    ['track.WAV', true],
+    ['photo.jpg', false],
+    ['clip.mp4', false],
+    ['slideshow.json', false],
+  ])('isSupportedAudio(%s) === %s', (filename, expected) => {
+    expect(isSupportedAudio(filename)).toBe(expected)
   })
 })
 

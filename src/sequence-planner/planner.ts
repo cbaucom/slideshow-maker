@@ -2,7 +2,18 @@ import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
-import type { KenBurnsVector, MediaMetadata, RenderPlan, RenderPlanEntry, TransitionSpec } from './types'
+import type {
+  KenBurnsVector,
+  MediaMetadata,
+  RenderPlan,
+  RenderPlanEntry,
+  SoundtrackTrack,
+  TransitionSpec,
+} from './types'
+
+export type SoundtrackInput = Pick<SoundtrackTrack, 'blobUrl' | 'durationInFrames'>
+
+const DEFAULT_SOUNDTRACK_VOLUME = 1
 
 const FPS = 30
 
@@ -25,8 +36,17 @@ export function plan(
   slides: Slide[],
   settings: GlobalSettings,
   mediaMetadata?: Map<string, MediaMetadata>,
+  soundtrack?: SoundtrackInput,
 ): RenderPlan {
-  if (slides.length === 0) return { entries: [], totalFrames: 0 }
+  if (slides.length === 0) {
+    return {
+      entries: [],
+      soundtrack: soundtrack
+        ? { ...soundtrack, volume: DEFAULT_SOUNDTRACK_VOLUME }
+        : undefined,
+      totalFrames: 0,
+    }
+  }
 
 
   function resolved(slide: Slide) {
@@ -106,5 +126,11 @@ export function plan(
     }
   }
 
-  return { entries, totalFrames: cursor }
+  return {
+    entries,
+    soundtrack: soundtrack
+      ? { ...soundtrack, volume: DEFAULT_SOUNDTRACK_VOLUME }
+      : undefined,
+    totalFrames: cursor,
+  }
 }

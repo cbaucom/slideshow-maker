@@ -375,3 +375,25 @@ describe('plan — title slides', () => {
     expect(result.totalFrames).toBe(135)
   })
 })
+
+describe('plan — soundtrack', () => {
+  const SOUNDTRACK = { blobUrl: 'blob:audio', durationInFrames: 300 }
+
+  it('includes soundtrack on RenderPlan when provided', () => {
+    const result = plan([IMG_90], CROSSFADE, undefined, SOUNDTRACK)
+    expect(result.soundtrack).toEqual({ ...SOUNDTRACK, volume: 1 })
+    expect(result.totalFrames).toBe(90)
+  })
+
+  it('omits soundtrack when not provided', () => {
+    const result = plan([IMG_90], CROSSFADE)
+    expect(result.soundtrack).toBeUndefined()
+  })
+
+  it('keeps slideshow totalFrames independent of soundtrack duration', () => {
+    const shortTrack = { blobUrl: 'blob:short', durationInFrames: 60 }
+    const result = plan([IMG_90, IMG_90B], CROSSFADE, undefined, shortTrack)
+    expect(result.totalFrames).toBe(165)
+    expect(result.soundtrack?.durationInFrames).toBe(60)
+  })
+})

@@ -11,20 +11,24 @@ import {
   createTitleSlide,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides } from '../timeline-core'
-import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import {
-  openProject,
-  saveProject,
   addRecentProject,
+  enumerateAudioTracks,
   listRecentProjects,
+  openProject,
   requestHandlePermission,
-  type SlideshowJson,
+  revokeAudioBlobUrls,
+  saveProject,
+  type AudioTrack,
   type RecentProject,
+  type SlideshowJson,
 } from '../project-store'
+import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
 import { plan } from '../sequence-planner'
 import { SlideshowComposition } from '../composition'
 import { StoryboardGrid } from './StoryboardGrid'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
+import { SoundtrackPanel } from './SoundtrackPanel'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { reconcileSlides, slidesToJson } from './slidePersistence'
@@ -36,8 +40,10 @@ const COMP_HEIGHT = 1080
 const AUTOSAVE_DELAY = 2000
 
 export function App() {
-  const [slides, setSlides] = useState<Slide[]>([])
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
+  const [slides, setSlides] = useState<Slide[]>([])
+  const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
@@ -46,13 +52,21 @@ export function App() {
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
 
   const dirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
+  const pendingAudioRevokeRef = useRef<AudioTrack[]>([])
   const pendingRevokeRef = useRef<Slide[]>([])
+  const latestAudioTracksRef = useRef<AudioTrack[]>([])
   const latestSlidesRef = useRef<Slide[]>([])
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     listRecentProjects().then(setRecentProjects).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    revokeAudioBlobUrls(pendingAudioRevokeRef.current)
+    pendingAudioRevokeRef.current = []
+    latestAudioTracksRef.current = audioTracks
+  }, [audioTracks])
 
   useEffect(() => {
     revokeSlideBlobUrls(pendingRevokeRef.current)
@@ -63,6 +77,7 @@ export function App() {
   useEffect(() => {
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+      revokeAudioBlobUrls(latestAudioTracksRef.current)
       revokeSlideBlobUrls(latestSlidesRef.current)
     }
   }, [])
@@ -73,9 +88,9 @@ export function App() {
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(slides, globalSettings)).catch(console.error)
+      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename)).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [slides, globalSettings])
+  }, [globalSettings, slides, soundtrackFilename])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -83,7 +98,13 @@ export function App() {
       setError(null)
       try {
         const enumerated = await enumerateFolder(handle)
+        const nextAudioTracks = await enumerateAudioTracks(handle)
         const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
+        const savedSoundtrack = savedData?.soundtrackFilename ?? null
+        const validSoundtrack =
+          savedSoundtrack && nextAudioTracks.some((track) => track.filename === savedSoundtrack)
+            ? savedSoundtrack
+            : null
         let finalSlides: Slide[] = savedData ? reconcileSlides(enumerated, savedData) : enumerated
         // Apply global duration only to media slides not already in savedData (new files added to folder).
         const savedFilenames = new Set(
@@ -95,9 +116,12 @@ export function App() {
             ? { ...s, durationInFrames: Math.round(restoredSettings.imageDurationSecs * FPS) }
             : s
         })
+        pendingAudioRevokeRef.current = audioTracks
         pendingRevokeRef.current = latestSlidesRef.current
+        setAudioTracks(nextAudioTracks)
         setGlobalSettings(restoredSettings)
         setSlides(finalSlides)
+        setSoundtrackFilename(validSoundtrack)
         setFolderOpen(true)
         setSelectedSlideId(null)
       } catch (e) {
@@ -106,7 +130,7 @@ export function App() {
         setLoading(false)
       }
     },
-    [],
+    [audioTracks],
   )
 
   const openFolder = useCallback(
@@ -197,9 +221,26 @@ export function App() {
     setCorruptError(null)
   }, [])
 
+  const selectedSoundtrack = useMemo(
+    () => (soundtrackFilename
+      ? audioTracks.find((track) => track.filename === soundtrackFilename)
+      : undefined),
+    [audioTracks, soundtrackFilename],
+  )
+
   const renderPlan = useMemo(
-    () => plan(filterIncluded(slides), globalSettings),
-    [slides, globalSettings],
+    () => plan(
+      filterIncluded(slides),
+      globalSettings,
+      undefined,
+      selectedSoundtrack
+        ? {
+            blobUrl: selectedSoundtrack.blobUrl,
+            durationInFrames: selectedSoundtrack.durationInFrames,
+          }
+        : undefined,
+    ),
+    [globalSettings, selectedSoundtrack, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
 
@@ -251,8 +292,13 @@ export function App() {
         {folderOpen && (
           <aside className="sidebar">
             <GlobalSettingsPanel
-              settings={globalSettings}
               onChange={handleSettingsChange}
+              settings={globalSettings}
+            />
+            <SoundtrackPanel
+              audioTracks={audioTracks}
+              onChange={setSoundtrackFilename}
+              soundtrackFilename={soundtrackFilename}
             />
             <div className="sidebar-actions">
               <button onClick={handleAddTitleSlide} className="add-title-btn">
