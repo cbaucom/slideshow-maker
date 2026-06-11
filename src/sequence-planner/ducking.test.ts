@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { isTitleSlide } from '../timeline-core/types'
 import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core/settings'
 import type { MediaSlide } from '../timeline-core/types'
-import { DUCK_LEVEL, DUCK_RAMP_FRAMES, plan } from './planner'
+import { DUCK_LEVEL, DUCK_RAMP_FRAMES, getUnmutedVideoAudioSpans, plan } from './planner'
 
 function makeSlide(
   id: string,
@@ -95,15 +94,9 @@ describe('plan — ducking envelope property', () => {
     for (const slides of cases) {
       const result = plan(slides, SETTINGS, undefined, SOUNDTRACK)
       const envelope = result.soundtrack!.duckingEnvelope
-      const expectedSpans = result.entries.flatMap((entry) => {
-        const { durationInFrames, slide, startFrame } = entry
-        if (isTitleSlide(slide) || slide.type !== 'video') return []
-        if (slide.overrides?.muteVideoAudio || slide.overrides?.muteMusic) return []
-        if (slide.overrides?.musicVolume !== undefined) return []
-        return [{
-          endFrame: startFrame + durationInFrames - 1,
-          startFrame,
-        }]
+      const expectedSpans = getUnmutedVideoAudioSpans(result.entries).filter((span) => {
+        const entry = result.entries.find((candidate) => candidate.startFrame === span.startFrame)
+        return entry?.slide.overrides?.musicVolume === undefined
       })
 
       const actualSpans = envelope.segments.map((segment) => ({

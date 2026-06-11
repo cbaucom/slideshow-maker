@@ -14,7 +14,7 @@ import type {
 
 export type SoundtrackInput = Pick<SoundtrackTrack, 'blobUrl' | 'durationInFrames'>
 
-export { DUCK_LEVEL, DUCK_RAMP_FRAMES, FULL_VOLUME } from './ducking'
+export { DUCK_LEVEL, DUCK_RAMP_FRAMES, FULL_VOLUME, getUnmutedVideoAudioSpans } from './ducking'
 
 const FPS = 30
 
