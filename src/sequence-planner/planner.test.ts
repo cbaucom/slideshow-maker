@@ -404,3 +404,43 @@ describe('plan — soundtrack', () => {
     expect(result.soundtrack?.durationInFrames).toBe(60)
   })
 })
+
+// --- kenBurnsMode: zoom-in-only ---
+
+describe('plan — kenBurnsMode zoom-in-only', () => {
+  const ZOOM_IN_SETTINGS: GlobalSettings = {
+    ...DEFAULT_GLOBAL_SETTINGS,
+    kenBurns: true,
+    kenBurnsMode: 'zoom-in-only',
+    transitionType: 'cut',
+  }
+
+  it('all Ken Burns vectors are zoom-in (toScale > fromScale) for multiple image slides', () => {
+    const slides = [
+      makeSlide('a', 'image', 90),
+      makeSlide('b', 'image', 90),
+      makeSlide('c', 'image', 90),
+      makeSlide('d', 'image', 90),
+    ]
+    const result = plan(slides, ZOOM_IN_SETTINGS)
+    for (const entry of result.entries) {
+      expect(entry.kenBurns).not.toBeNull()
+      expect(entry.kenBurns!.toScale).toBeGreaterThan(entry.kenBurns!.fromScale)
+    }
+  })
+
+  it('alternate mode produces both zoom-in and zoom-out across 4+ slides', () => {
+    const slides = [
+      makeSlide('a', 'image', 90),
+      makeSlide('b', 'image', 90),
+      makeSlide('c', 'image', 90),
+      makeSlide('d', 'image', 90),
+    ]
+    const result = plan(slides, KB_ON)
+    const directions = result.entries.map(e =>
+      e.kenBurns!.toScale > e.kenBurns!.fromScale ? 'in' : 'out',
+    )
+    expect(directions).toContain('in')
+    expect(directions).toContain('out')
+  })
+})

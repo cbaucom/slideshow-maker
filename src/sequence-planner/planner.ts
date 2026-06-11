@@ -33,6 +33,8 @@ const KB_PRESETS: KenBurnsVector[] = [
   { fromScale: 1.12, toScale: 1.0, fromX: -0.03, fromY: -0.02, toX: 0.03, toY: 0.02 },   // out, top-left→bottom-right
 ]
 
+const KB_ZOOM_IN_PRESETS: KenBurnsVector[] = [KB_PRESETS[0], KB_PRESETS[2]]
+
 export function plan(
   slides: Slide[],
   settings: GlobalSettings,
@@ -106,9 +108,11 @@ export function plan(
         ? undefined
         : { type: slideResolved.transitionType, durationInFrames: effectiveTrans[i] }
 
+    const kbPresets =
+      slideResolved.kenBurnsMode === 'zoom-in-only' ? KB_ZOOM_IN_PRESETS : KB_PRESETS
     const kenBurns: KenBurnsVector | null =
       !isTitleSlide(slide) && slideResolved.kenBurns && slide.type !== 'video'
-        ? KB_PRESETS[photoIndex % KB_PRESETS.length]
+        ? kbPresets[photoIndex % kbPresets.length]
         : null
 
     if (!isTitleSlide(slide) && slide.type !== 'video') photoIndex++
