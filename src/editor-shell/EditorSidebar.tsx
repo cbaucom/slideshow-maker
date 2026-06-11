@@ -5,7 +5,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import type { GlobalSettings, ThemeName } from '../timeline-core'
+import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import type { AudioTrack } from '../project-store'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
@@ -13,6 +13,8 @@ import { SoundtrackPanel } from './SoundtrackPanel'
 import { JamendoPanel } from './JamendoPanel'
 
 type Props = {
+  aspectRatio: AspectRatio
+  onAspectRatioChange: (ratio: AspectRatio) => void
   settings: GlobalSettings
   themeName: ThemeName | null
   onSettingsChange: (updated: GlobalSettings) => void
@@ -26,6 +28,8 @@ type Props = {
 }
 
 export function EditorSidebar({
+  aspectRatio,
+  onAspectRatioChange,
   settings,
   themeName,
   onSettingsChange,
@@ -51,6 +55,8 @@ export function EditorSidebar({
             <AccordionTrigger className="py-3 text-sm">Settings</AccordionTrigger>
             <AccordionContent>
               <GlobalSettingsPanel
+                aspectRatio={aspectRatio}
+                onAspectRatioChange={onAspectRatioChange}
                 settings={settings}
                 themeName={themeName}
                 onChange={onSettingsChange}

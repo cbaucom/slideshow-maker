@@ -1,3 +1,4 @@
+import type { AspectRatio } from '../timeline-core/aspect'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
 import type { BeatGrid } from '../beat-grid/types'
 import type { JamendoAttribution } from '../jamendo/types'
@@ -28,6 +29,7 @@ export type SerializedTitleSlide = {
 export type SerializedSlide = SerializedMediaSlide | SerializedTitleSlide
 
 export type SlideshowJson = {
+  aspectRatio?: AspectRatio
   globalSettings?: GlobalSettings
   schemaVersion: number
   slides: SerializedSlide[]

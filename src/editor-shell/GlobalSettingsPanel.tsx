@@ -10,6 +10,8 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { GlobalSettings, TransitionType, FitMode, ThemeName } from '../timeline-core/settings'
+import { ASPECT_RATIOS } from '../timeline-core/aspect'
+import type { AspectRatio } from '../timeline-core/aspect'
 
 const THEME_LABELS: Record<ThemeName, string> = {
   classic: 'Classic',
@@ -20,13 +22,15 @@ const THEME_LABELS: Record<ThemeName, string> = {
 const THEME_NAMES: ThemeName[] = ['classic', 'energetic', 'plain']
 
 type Props = {
+  aspectRatio: AspectRatio
+  onAspectRatioChange: (ratio: AspectRatio) => void
   settings: GlobalSettings
   onChange: (updated: GlobalSettings) => void
   onThemeChange: (name: ThemeName) => void
   themeName: ThemeName | null
 }
 
-export function GlobalSettingsPanel({ settings, onChange, onThemeChange, themeName }: Props) {
+export function GlobalSettingsPanel({ aspectRatio, onAspectRatioChange, settings, onChange, onThemeChange, themeName }: Props) {
   function set<K extends keyof GlobalSettings>(key: K, value: GlobalSettings[K]) {
     onChange({ ...settings, [key]: value })
   }
@@ -48,6 +52,26 @@ export function GlobalSettingsPanel({ settings, onChange, onThemeChange, themeNa
           {THEME_NAMES.map(name => (
             <ToggleGroupItem key={name} value={name} className="flex-1 text-xs">
               {THEME_LABELS[name]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">Aspect ratio</Label>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          value={aspectRatio}
+          onValueChange={value => {
+            if (value) onAspectRatioChange(value as AspectRatio)
+          }}
+        >
+          {ASPECT_RATIOS.map(ratio => (
+            <ToggleGroupItem key={ratio} value={ratio} className="flex-1 text-xs">
+              {ratio}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

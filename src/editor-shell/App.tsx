@@ -11,7 +11,7 @@ import {
   createTitleSlide,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
-import { applyTheme } from '../timeline-core'
+import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
 import { plan, slideIdAtFrame, startFrameForSlideId } from '../sequence-planner'
 import { AppHeader } from './AppHeader'
 import { DropImportLayer } from './DropImportLayer'
@@ -32,6 +32,8 @@ export function App() {
   const clearSelection = useCallback(() => setSelectedSlideId(null), [])
   const project = useProject({ onFolderLoaded: clearSelection })
   const {
+    aspectRatio,
+    setAspectRatio,
     audioTracks,
     globalSettings,
     setGlobalSettings,
@@ -106,6 +108,7 @@ export function App() {
     [globalSettings, selectedSoundtrack, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
+  const canvas = dimensionsForAspectRatio(aspectRatio)
 
   const handleFrameChange = useCallback((frame: number) => {
     setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
@@ -168,6 +171,8 @@ export function App() {
           <EditorLayout
             player={(
               <PlayerPane
+                compositionHeight={canvas.height}
+                compositionWidth={canvas.width}
                 onFrameChange={handleFrameChange}
                 playerRef={playerRef}
                 renderPlan={renderPlan}
@@ -186,6 +191,8 @@ export function App() {
             ) : null}
             sidebar={
               <EditorSidebar
+                aspectRatio={aspectRatio}
+                onAspectRatioChange={setAspectRatio}
                 settings={globalSettings}
                 themeName={themeName}
                 onSettingsChange={handleSettingsChange}

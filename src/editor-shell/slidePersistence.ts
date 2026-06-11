@@ -1,6 +1,6 @@
 import type { MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
-import type { GlobalSettings, ThemeName } from '../timeline-core'
+import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import { SCHEMA_VERSION, type SlideshowJson } from '../project-store'
 import type { JamendoAttribution } from '../jamendo/types'
 
@@ -34,10 +34,12 @@ export function slidesToJson(
   soundtrackFilename?: string | null,
   themeName?: ThemeName | null,
   soundtrackAttribution?: JamendoAttribution | null,
+  aspectRatio?: AspectRatio | null,
 ): SlideshowJson {
   return {
     globalSettings,
     schemaVersion: SCHEMA_VERSION,
+    ...(aspectRatio ? { aspectRatio } : {}),
     ...(soundtrackFilename ? { soundtrackFilename } : {}),
     ...(themeName ? { themeName } : {}),
     ...(soundtrackAttribution ? { soundtrackAttribution } : {}),
