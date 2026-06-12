@@ -18,13 +18,16 @@ importers:
         specifier: ^4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/media':
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/player':
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/transitions':
-        specifier: ^4.0.289
+        specifier: 4.0.475
+        version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@remotion/web-renderer':
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tailwindcss/vite':
         specifier: ^4.3.0
@@ -54,7 +57,7 @@ importers:
         specifier: ^4.11.2
         version: 4.11.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       remotion:
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       shadcn:
         specifier: ^4.11.0
@@ -572,6 +575,21 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@mediabunny/aac-encoder@1.45.0':
+    resolution: {integrity: sha512-vLQw8cY7Me6pvTTMkMhOiH9UCuINzfTOETCeDxbGNeNfDqc/7QlxloUH1Ylp/Zz2ek0O8kc6YdygV2vWAPakrA==}
+    peerDependencies:
+      mediabunny: ^1.46.0
+
+  '@mediabunny/flac-encoder@1.45.0':
+    resolution: {integrity: sha512-LfKbAMZVkxRS7PpEIVnWOY/l0KcHv+rjO7pYY3O0TPCZvbHWfrnQjn8JPacPIfuq6Yv7r4f8lhcl7yHSynoRkQ==}
+    peerDependencies:
+      mediabunny: ^1.46.0
+
+  '@mediabunny/mp3-encoder@1.45.0':
+    resolution: {integrity: sha512-Bobi6AaQYEc7TWmPJ8Q0/hcUtBN7pLUC2qjoC7oZR4FcGqGztby6k7A1SWlmswoMOEIhYsOrgDaemrSDAC0QVQ==}
+    peerDependencies:
+      mediabunny: ^1.46.0
 
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
@@ -1318,6 +1336,9 @@ packages:
   '@remotion/google-fonts@4.0.475':
     resolution: {integrity: sha512-YJR0foFqmO9Jkufz37X1iDiS1HjKqRrp3y7SASolz9FxO8U4Ukp+JRe+KZTAkeLkPMaqi/fXuDljqhVKUjcYRQ==}
 
+  '@remotion/licensing@4.0.475':
+    resolution: {integrity: sha512-ZBDKg+iRa/mVoX/EWM40MypICKokWcG4c4RKQ4QKmy9JgJssbnFSy9mikPKMi/64J3KPEfAT1hv4JRKlNdoX5g==}
+
   '@remotion/media@4.0.475':
     resolution: {integrity: sha512-X4RqOqPDwmNsfig6x950TxWtfb4nUWsyPSTT/RTJiw13lEaNNesr8Ob2Bm1NWYmYQLqHmt+kZbJPF6zBt/yDyA==}
     peerDependencies:
@@ -1344,6 +1365,12 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
+
+  '@remotion/web-renderer@4.0.475':
+    resolution: {integrity: sha512-3vftJV5R95PQuH/fk9qW4/e9u5MQ13d2UgmQYIiuWtLuQLXz6k0wDywpha3E3+Hg1yRb7wvod+j3eF9gzGRFEA==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
 
   '@rolldown/binding-android-arm64@1.0.3':
     resolution: {integrity: sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw==}
@@ -4164,6 +4191,18 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@mediabunny/aac-encoder@1.45.0(mediabunny@1.46.0)':
+    dependencies:
+      mediabunny: 1.46.0
+
+  '@mediabunny/flac-encoder@1.45.0(mediabunny@1.46.0)':
+    dependencies:
+      mediabunny: 1.46.0
+
+  '@mediabunny/mp3-encoder@1.45.0(mediabunny@1.46.0)':
+    dependencies:
+      mediabunny: 1.46.0
+
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.25)
@@ -4975,6 +5014,8 @@ snapshots:
       - react
       - react-dom
 
+  '@remotion/licensing@4.0.475': {}
+
   '@remotion/media@4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       mediabunny: 1.46.0
@@ -5002,6 +5043,17 @@ snapshots:
     dependencies:
       '@remotion/paths': 4.0.475
       '@remotion/shapes': 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+      remotion: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+
+  '@remotion/web-renderer@4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@mediabunny/aac-encoder': 1.45.0(mediabunny@1.46.0)
+      '@mediabunny/flac-encoder': 1.45.0(mediabunny@1.46.0)
+      '@mediabunny/mp3-encoder': 1.45.0(mediabunny@1.46.0)
+      '@remotion/licensing': 4.0.475
+      mediabunny: 1.46.0
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       remotion: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

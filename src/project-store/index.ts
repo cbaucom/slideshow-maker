@@ -1,4 +1,6 @@
 export { enumerateAudioTracks, revokeAudioBlobUrls } from './audio-loader'
+export { EXPORTS_DIR, exportFilename, writeExportedVideo } from './export-store'
+export type { ExportDirHandle } from './export-store'
 export type { AudioTrack } from './audio-loader'
 export { importDroppedMediaFiles, resolveUniqueFilename } from './import-media'
 export type { ImportDirHandle, ImportDroppedMediaResult, SkippedImport } from './import-media'

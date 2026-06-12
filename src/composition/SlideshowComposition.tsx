@@ -1,6 +1,6 @@
-import React from 'react'
-import { AbsoluteFill, Html5Audio, Img, interpolate, useCurrentFrame } from 'remotion'
-import { Video } from '@remotion/media'
+import React, { useCallback } from 'react'
+import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion'
+import { Audio, Video } from '@remotion/media'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { TransitionPresentation, TransitionPresentationComponentProps } from '@remotion/transitions'
@@ -9,7 +9,7 @@ import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { MediaSlide, TitleSlide } from '../timeline-core/types'
-import { useSoundtrackVolume } from './soundtrackVolume'
+import { volumeAtFrame } from './soundtrackVolume'
 
 type MediaRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: MediaSlide }
 type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide }
@@ -88,9 +88,14 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
   )
 }
 
+// @remotion/media's Audio (not Html5Audio) — required for renderMediaOnWeb export.
 function SoundtrackAudio({ track }: { track: NonNullable<RenderPlan['soundtrack']> }) {
-  const volume = useSoundtrackVolume(track.duckingEnvelope)
-  return <Html5Audio src={track.blobUrl} volume={volume} />
+  const { duckingEnvelope } = track
+  const volume = useCallback(
+    (frame: number) => volumeAtFrame(duckingEnvelope, frame),
+    [duckingEnvelope],
+  )
+  return <Audio src={track.blobUrl} volume={volume} />
 }
 
 function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {

@@ -6,12 +6,14 @@ import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import {
   addRecentProject,
   enumerateAudioTracks,
+  exportFilename,
   importDroppedMediaFiles,
   listRecentProjects,
   openProject,
   requestHandlePermission,
   revokeAudioBlobUrls,
   saveProject,
+  writeExportedVideo,
   type AudioTrack,
   type RecentProject,
   type SlideshowJson,
@@ -48,6 +50,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
   const [folderOpen, setFolderOpen] = useState(false)
+  const [projectName, setProjectName] = useState('')
   const [importNotice, setImportNotice] = useState<string | null>(null)
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([])
 
@@ -127,6 +130,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         setSlides(finalSlides)
         setSoundtrackFilename(validSoundtrack)
         setSoundtrackAttribution(restoredAttribution)
+        setProjectName(handle.name)
         setFolderOpen(true)
         onFolderLoaded?.()
       } catch (e) {
@@ -206,6 +210,14 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     }
   }, [])
 
+  const saveExportedVideo = useCallback(async (blob: Blob, extension: string): Promise<string> => {
+    const handle = dirHandleRef.current
+    if (!handle) throw new Error('No project folder open')
+    const filename = exportFilename(handle.name, new Date(), extension)
+    await writeExportedVideo(handle, filename, blob)
+    return filename
+  }, [])
+
   const changeSoundtrack = useCallback((filename: string | null) => {
     setSoundtrackFilename(filename)
     setSoundtrackAttribution(null)
@@ -266,6 +278,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     corruptError,
     dismissImportNotice,
     folderOpen,
+    projectName,
     importDroppedFiles,
     importNotice,
     recentProjects,
@@ -275,5 +288,6 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     addJamendoTrack,
     changeSoundtrack,
     dismissCorruptError,
+    saveExportedVideo,
   }
 }
