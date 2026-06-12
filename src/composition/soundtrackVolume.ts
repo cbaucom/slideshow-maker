@@ -1,5 +1,5 @@
-import { interpolate, useCurrentFrame } from 'remotion'
-import type { DuckingEnvelope, VolumeKeyframe } from '../sequence-planner/types'
+import { interpolate } from 'remotion'
+import type { DuckingEnvelope } from '../sequence-planner/types'
 
 export function volumeAtFrame(envelope: DuckingEnvelope, frame: number): number {
   const { keyframes, rampFrames } = envelope
@@ -34,12 +34,4 @@ export function volumeAtFrame(envelope: DuckingEnvelope, frame: number): number 
   }
 
   return active.volume
-}
-
-export function useSoundtrackVolume(envelope: VolumeKeyframe[] | DuckingEnvelope, rampFrames = 6) {
-  const frame = useCurrentFrame()
-  const duckingEnvelope = Array.isArray(envelope)
-    ? { keyframes: envelope, rampFrames, segments: [] }
-    : envelope
-  return volumeAtFrame(duckingEnvelope, frame)
 }
