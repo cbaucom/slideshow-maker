@@ -15,6 +15,7 @@ import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
 import { plan, slideIdAtFrame, startFrameForSlideId } from '../sequence-planner'
 import { AppHeader } from './AppHeader'
 import { DropImportLayer } from './DropImportLayer'
+import { ExportDialog } from './ExportDialog'
 import { EditorLayout } from './EditorLayout'
 import { EditorSidebar } from './EditorSidebar'
 import { EmptyState } from './EmptyState'
@@ -28,6 +29,7 @@ export function App() {
   const playerRef = useRef<PlayerRef>(null)
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const clearSelection = useCallback(() => setSelectedSlideId(null), [])
   const project = useProject({ onFolderLoaded: clearSelection })
@@ -128,8 +130,10 @@ export function App() {
     <div className="flex h-full flex-col overflow-hidden">
       <DropImportLayer enabled={folderOpen} onDropFiles={project.importDroppedFiles} />
       <AppHeader
+        canExport={renderPlan.entries.length > 0}
         folderOpen={folderOpen}
         loading={loading}
+        onExport={() => setExporting(true)}
         onPickFolder={project.pickFolder}
         onRefresh={project.refresh}
       />
@@ -212,6 +216,18 @@ export function App() {
           )
         )}
       </main>
+
+      {exporting && (
+        <ExportDialog
+          fps={FPS}
+          height={canvas.height}
+          onClose={() => setExporting(false)}
+          onSaveVideo={project.saveExportedVideo}
+          projectName={project.projectName}
+          renderPlan={renderPlan}
+          width={canvas.width}
+        />
+      )}
 
       {selectedSlide && isTitleSlide(selectedSlide) && (
         <TitleSlideDialog

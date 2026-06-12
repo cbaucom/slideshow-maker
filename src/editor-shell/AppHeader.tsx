@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button'
 
 type Props = {
+  canExport: boolean
   folderOpen: boolean
   loading: boolean
+  onExport: () => void
   onPickFolder: () => void
   onRefresh: () => void
 }
 
-export function AppHeader({ folderOpen, loading, onPickFolder, onRefresh }: Props) {
+export function AppHeader({ canExport, folderOpen, loading, onExport, onPickFolder, onRefresh }: Props) {
   return (
     <header className="flex shrink-0 items-center justify-between border-b bg-card px-4 py-2">
       <h1 className="text-base font-semibold">Slideshow Maker</h1>
@@ -16,9 +18,14 @@ export function AppHeader({ folderOpen, loading, onPickFolder, onRefresh }: Prop
           Open Folder
         </Button>
         {folderOpen && (
-          <Button size="sm" variant="outline" onClick={onRefresh} disabled={loading}>
-            Refresh
-          </Button>
+          <>
+            <Button size="sm" variant="outline" onClick={onRefresh} disabled={loading}>
+              Refresh
+            </Button>
+            <Button size="sm" variant="outline" onClick={onExport} disabled={loading || !canExport}>
+              Export Video
+            </Button>
+          </>
         )}
       </div>
     </header>
