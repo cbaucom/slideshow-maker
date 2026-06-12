@@ -163,6 +163,7 @@ export function ExportDialog({ fps, height, onClose, onSaveVideo, projectName, r
   const mediaLabel = EXPORT_FORMATS[format].videoCodec
     ? `${width}×${height} ${format.toUpperCase()}`
     : `${format.toUpperCase()} audio`
+  const errorBlob = state.phase === 'error' ? state.blob : null
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
@@ -245,8 +246,8 @@ export function ExportDialog({ fps, height, onClose, onSaveVideo, projectName, r
           <div className="space-y-3">
             <p className="text-sm text-destructive">{state.message}</p>
             <div className="flex justify-end gap-2">
-              {state.blob && (
-                <Button size="sm" variant="outline" onClick={() => handleSaveElsewhere(state.blob!)}>
+              {errorBlob && (
+                <Button size="sm" variant="outline" onClick={() => handleSaveElsewhere(errorBlob)}>
                   Save elsewhere…
                 </Button>
               )}

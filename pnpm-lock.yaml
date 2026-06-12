@@ -18,13 +18,13 @@ importers:
         specifier: ^4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/media':
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/player':
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/transitions':
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@remotion/web-renderer':
         specifier: 4.0.475
@@ -57,7 +57,7 @@ importers:
         specifier: ^4.11.2
         version: 4.11.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       remotion:
-        specifier: ^4.0.289
+        specifier: 4.0.475
         version: 4.0.475(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       shadcn:
         specifier: ^4.11.0
