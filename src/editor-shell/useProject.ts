@@ -121,8 +121,10 @@ export function useProject({ onFolderLoaded }: Options = {}) {
       setLoading(true)
       setError(null)
       try {
-        const enumerated = await enumerateFolder(handle)
-        const nextAudioTracks = await enumerateAudioTracks(handle)
+        const [enumerated, nextAudioTracks] = await Promise.all([
+          enumerateFolder(handle),
+          enumerateAudioTracks(handle),
+        ])
         const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
         const restoredThemeName = savedData?.themeName ?? null
         const restoredClips = filterValidAudioClips(
@@ -256,8 +258,12 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     setAudioClips(clips)
   }, [])
 
-  const updateLoudnessCache = useCallback((cache: LoudnessCache) => {
-    setLoudnessCache(cache)
+  const updateLoudnessCache = useCallback((entry: LoudnessCache) => {
+    setLoudnessCache((previous) => ({ ...previous, ...entry }))
+  }, [])
+
+  const updateBeatGridCacheEntry = useCallback((entry: BeatGridCache) => {
+    setBeatGridCache((previous) => ({ ...previous, ...entry }))
   }, [])
 
   const updateBeatGridPersist = useCallback((update: {
@@ -323,6 +329,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     themeName,
     setThemeName,
     updateAudioClips,
+    updateBeatGridCacheEntry,
     updateBeatGridPersist,
     updateLoudnessCache,
     loading,

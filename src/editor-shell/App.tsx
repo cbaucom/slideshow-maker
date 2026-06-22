@@ -24,8 +24,8 @@ import { StoryboardFilmstrip } from './StoryboardFilmstrip'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
+import { useAudioClipAnalysis } from './useAudioClipAnalysis'
 import { useBeatGrid } from './useBeatGrid'
-import { useLoudness } from './useLoudness'
 import { resolveEffectiveGainDb } from '../audio-analysis'
 
 export function App() {
@@ -51,6 +51,7 @@ export function App() {
     themeName,
     setThemeName,
     updateAudioClips,
+    updateBeatGridCacheEntry,
     updateBeatGridPersist,
     updateLoudnessCache,
     loading,
@@ -61,17 +62,22 @@ export function App() {
     recentProjects,
   } = project
 
+  const { pendingBeatFilenames } = useAudioClipAnalysis({
+    audioClips,
+    audioTracks,
+    beatGridCache,
+    loudnessCache,
+    manualBeatGrid,
+    onBeatGridCacheChange: updateBeatGridCacheEntry,
+    onLoudnessCacheChange: updateLoudnessCache,
+  })
+
   const beatGrid = useBeatGrid({
     audioClips,
     audioTracks,
     onPersistChange: updateBeatGridPersist,
+    pendingBeatFilenames,
     persisted: { beatGridCache, manualBeatGrid },
-  })
-
-  useLoudness({
-    audioTracks,
-    loudnessCache,
-    onPersistChange: updateLoudnessCache,
   })
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
@@ -124,6 +130,10 @@ export function App() {
     [audioClips, audioTracks, loudnessCache],
   )
 
+  const planBeatTimes = beatGrid.analysisStatus === 'analyzing'
+    ? undefined
+    : beatGrid.concatenatedBeatTimes
+
   const renderPlan = useMemo(
     () => plan(
       filterIncluded(slides),
@@ -131,9 +141,9 @@ export function App() {
       undefined,
       planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
-      beatGrid.concatenatedBeatTimes,
+      planBeatTimes,
     ),
-    [beatGrid.concatenatedBeatTimes, beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
+    [beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, planBeatTimes, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)

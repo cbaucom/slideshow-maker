@@ -1,6 +1,12 @@
 import type { BeatGrid } from './types'
 
 const HOP_SIZE = 512
+const MAX_ANALYSIS_SECS = 30
+
+function analysisSamples(samples: Float32Array, sampleRate: number): Float32Array {
+  const maxSamples = sampleRate * MAX_ANALYSIS_SECS
+  return samples.length > maxSamples ? samples.subarray(0, maxSamples) : samples
+}
 
 /** Compute RMS energy per hop. */
 function computeEnergy(samples: Float32Array): Float32Array {
@@ -80,7 +86,8 @@ function findBeatPhase(onset: Float32Array, periodLag: number): number {
  * Pure math — no browser APIs.
  */
 export function detectBeatGrid(samples: Float32Array, sampleRate: number): BeatGrid {
-  const energy = computeEnergy(samples)
+  const clipped = analysisSamples(samples, sampleRate)
+  const energy = computeEnergy(clipped)
   const onset = computeOnsetStrength(energy)
 
   // Lag range corresponding to [60, 200] BPM

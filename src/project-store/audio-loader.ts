@@ -41,14 +41,15 @@ export async function enumerateAudioTracks(
   const createdUrls: string[] = []
 
   try {
-    const tracks: AudioTrack[] = []
-    for (const filename of sorted) {
-      const file = filesByName.get(filename)!
-      const blobUrl = URL.createObjectURL(file)
-      createdUrls.push(blobUrl)
-      const durationInFrames = await getAudioDurationFrames(file)
-      tracks.push({ blobUrl, byteLength: file.size, durationInFrames, filename })
-    }
+    const tracks = await Promise.all(
+      sorted.map(async (filename) => {
+        const file = filesByName.get(filename)!
+        const blobUrl = URL.createObjectURL(file)
+        createdUrls.push(blobUrl)
+        const durationInFrames = await getAudioDurationFrames(file)
+        return { blobUrl, byteLength: file.size, durationInFrames, filename }
+      }),
+    )
     return tracks
   } catch (error) {
     createdUrls.forEach((url) => URL.revokeObjectURL(url))
