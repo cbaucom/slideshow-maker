@@ -62,16 +62,6 @@ export function App() {
     recentProjects,
   } = project
 
-  const { pendingBeatFilenames } = useAudioClipAnalysis({
-    audioClips,
-    audioTracks,
-    beatGridCache,
-    loudnessCache,
-    manualBeatGrid,
-    onBeatGridCacheChange: updateBeatGridCacheEntry,
-    onLoudnessCacheChange: updateLoudnessCache,
-  })
-
   const beatGrid = useBeatGrid({
     audioClips,
     audioTracks,
@@ -146,9 +136,9 @@ export function App() {
       undefined,
       planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
-      planBeatTimes,
+      beatGrid.concatenatedBeatTimes,
     ),
-    [beatGrid.effectiveBeatGrid, deferredGlobalSettings, deferredSlides, planAudioClips, planBeatTimes],
+    [beatGrid.concatenatedBeatTimes, beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)

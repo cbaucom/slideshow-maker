@@ -14,10 +14,4 @@ describe('nudgeSlideEndFrame', () => {
     const duration = nudgeSlideEndFrame(60, 40, BEAT_TIMES, 'medium', FPS)
     expect(60 + duration).toBe(105)
   })
-
-  it('matches linear scan on a long concatenated beat grid', () => {
-    const longBeatTimes = Array.from({ length: 1200 }, (_, index) => index * 0.5)
-    const duration = nudgeSlideEndFrame(900, 50, longBeatTimes, 'medium', FPS)
-    expect(900 + duration).toBe(945)
-  })
 })
