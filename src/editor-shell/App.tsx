@@ -13,6 +13,7 @@ import {
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
 import { plan, slideIdAtFrame, startFrameForSlideId } from '../sequence-planner'
+import { resolveEffectiveGainDb } from '../audio-analysis'
 import { AppHeader } from './AppHeader'
 import { DropImportLayer } from './DropImportLayer'
 import { ExportDialog } from './ExportDialog'
@@ -20,16 +21,16 @@ import { EditorLayout } from './EditorLayout'
 import { EditorSidebar } from './EditorSidebar'
 import { EmptyState } from './EmptyState'
 import { PlayerPane, FPS } from './PlayerPane'
-import { StoryboardFilmstrip } from './StoryboardFilmstrip'
+import { TimelinePanel } from './TimelinePanel'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
 import { useAudioClipAnalysis } from './useAudioClipAnalysis'
 import { useBeatGrid } from './useBeatGrid'
-import { resolveEffectiveGainDb } from '../audio-analysis'
 
 export function App() {
   const playerRef = useRef<PlayerRef>(null)
+  const [currentFrame, setCurrentFrame] = useState(0)
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
@@ -154,6 +155,13 @@ export function App() {
   const canvas = dimensionsForAspectRatio(aspectRatio)
 
   const handleFrameChange = useCallback((frame: number) => {
+    setCurrentFrame(frame)
+    setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
+  }, [renderPlan])
+
+  const handleSeek = useCallback((frame: number) => {
+    playerRef.current?.seekTo(frame)
+    setCurrentFrame(frame)
     setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
   }, [renderPlan])
 
@@ -231,11 +239,17 @@ export function App() {
               />
             )}
             filmstrip={slides.length > 0 ? (
-              <StoryboardFilmstrip
+              <TimelinePanel
+                audioClips={audioClips}
+                audioTracks={audioTracks}
+                currentFrame={currentFrame}
                 currentSlideId={currentSlideId}
+                loudnessCache={loudnessCache}
                 onReorder={handleReorder}
+                onSeek={handleSeek}
                 onSlideClick={handleSlideClick}
                 onToggleExclude={handleToggleExclude}
+                renderPlan={renderPlan}
                 selectedSlideId={selectedSlideId}
                 slides={slides}
               />

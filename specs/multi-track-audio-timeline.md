@@ -56,3 +56,9 @@ Closes #46.
 Per-file `beatGridCache` in slideshow.json (migrates legacy single `BeatGrid`). `buildConcatenatedBeatTimes` shifts each clip's beats by clip start. Manual beat grid spans total audio duration. Planner uses position-aware `nudgeSlideEndFrame` when concatenated beat times are provided. `useBeatGrid` analyzes only clips missing from cache; reorder preserves cache.
 
 Closes #49.
+
+## Slice 22 — Proportional timeline UI (in progress)
+
+`TimelinePanel` replaces `StoryboardFilmstrip`: proportional media widths, audio lane with waveforms and gain sliders, shared scroll + playhead.
+
+Closes #48.

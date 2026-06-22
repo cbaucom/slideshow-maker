@@ -11,7 +11,12 @@ import {
 } from '@/components/ui/select'
 import type { AudioTrack } from '../project-store'
 import type { AudioClip } from '../timeline-core/types'
-import { addAudioClip, moveAudioClip, removeAudioClip } from '../timeline-core'
+import {
+  addAudioClip,
+  moveAudioClip,
+  removeAudioClip,
+  updateAudioClipGain,
+} from '../timeline-core'
 import type { BeatGrid } from '../beat-grid/types'
 import type { LoudnessCache } from '../audio-analysis/types'
 import { BeatGridPanel } from './BeatGridPanel'
@@ -31,14 +36,6 @@ type Props = {
   onApplyTapTimestamps: (tapTimestampsMs: number[]) => void
   onChange: (clips: AudioClip[]) => void
   onClearManualBeatGrid: () => void
-}
-
-function updateClipGain(clips: AudioClip[], index: number, gainDb: number | undefined): AudioClip[] {
-  return clips.map((clip, clipIndex) => {
-    if (clipIndex !== index) return clip
-    if (gainDb === undefined) return { filename: clip.filename }
-    return { filename: clip.filename, gainDb }
-  })
 }
 
 export function SoundtrackPanel({
@@ -75,7 +72,7 @@ export function SoundtrackPanel({
               return (
                 <li
                   key={`${clip.filename}-${index}`}
-                  className="flex items-center gap-1 rounded-md border bg-background px-2 py-1.5 text-xs"
+                  className="flex cursor-grab items-center gap-1 rounded-md border bg-background px-2 py-1.5 text-xs active:cursor-grabbing"
                   draggable
                   onDragEnd={() => { dragIndexRef.current = null }}
                   onDragOver={(event) => event.preventDefault()}
@@ -88,6 +85,7 @@ export function SoundtrackPanel({
                     dragIndexRef.current = null
                   }}
                 >
+                  <span className="shrink-0 tabular-nums text-muted-foreground">{index + 1}.</span>
                   <span className="min-w-0 flex-1 truncate">{clip.filename}</span>
                   <div className="flex shrink-0 items-center gap-1">
                     <Input
@@ -96,12 +94,12 @@ export function SoundtrackPanel({
                       onChange={(event) => {
                         const raw = event.target.value.trim()
                         if (raw === '') {
-                          onChange(updateClipGain(audioClips, index, undefined))
+                          onChange(updateAudioClipGain(audioClips, index, undefined))
                           return
                         }
                         const parsed = Number(raw)
                         if (!Number.isNaN(parsed)) {
-                          onChange(updateClipGain(audioClips, index, parsed))
+                          onChange(updateAudioClipGain(audioClips, index, parsed))
                         }
                       }}
                       placeholder={autoGainDb !== undefined ? autoGainDb.toFixed(1) : '0'}
@@ -113,7 +111,7 @@ export function SoundtrackPanel({
                     {clip.gainDb !== undefined ? (
                       <Button
                         aria-label={`Reset gain for ${clip.filename}`}
-                        onClick={() => onChange(updateClipGain(audioClips, index, undefined))}
+                        onClick={() => onChange(updateAudioClipGain(audioClips, index, undefined))}
                         size="icon-sm"
                         type="button"
                         variant="ghost"
@@ -162,6 +160,8 @@ export function SoundtrackPanel({
             </SelectContent>
           </Select>
         </div>
+      ) : audioClips.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Drop audio into the project folder, then add it here.</p>
       ) : null}
 
       {primaryTrack ? (

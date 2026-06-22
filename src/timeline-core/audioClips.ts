@@ -16,3 +16,15 @@ export function moveAudioClip(clips: AudioClip[], fromIndex: number, toIndex: nu
 export function removeAudioClip(clips: AudioClip[], index: number): AudioClip[] {
   return clips.filter((_, clipIndex) => clipIndex !== index)
 }
+
+export function updateAudioClipGain(
+  clips: AudioClip[],
+  index: number,
+  gainDb: number | undefined,
+): AudioClip[] {
+  return clips.map((clip, clipIndex) => {
+    if (clipIndex !== index) return clip
+    if (gainDb === undefined) return { filename: clip.filename }
+    return { filename: clip.filename, gainDb }
+  })
+}
