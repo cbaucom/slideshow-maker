@@ -9,7 +9,6 @@ import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import type { AudioClip } from '../timeline-core/types'
 import type { AudioTrack } from '../project-store'
 import type { BeatGrid } from '../beat-grid/types'
-import type { LoudnessCache } from '../audio-analysis/types'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
 import { SoundtrackPanel } from './SoundtrackPanel'
@@ -33,7 +32,6 @@ type Props = {
   onSettingsChange: (updated: GlobalSettings) => void
   onThemeChange: (name: ThemeName) => void
   audioClips: AudioClip[]
-  loudnessCache: LoudnessCache | undefined
   settings: GlobalSettings
   themeName: ThemeName | null
 }
@@ -55,7 +53,6 @@ export function EditorSidebar({
   onSettingsChange,
   onThemeChange,
   audioClips,
-  loudnessCache,
   settings,
   themeName,
 }: Props) {
@@ -93,7 +90,6 @@ export function EditorSidebar({
                   audioTracks={audioTracks}
                   beatSync={settings.beatSync !== false}
                   effectiveBeatGrid={effectiveBeatGrid}
-                  loudnessCache={loudnessCache}
                   manualBeatGrid={manualBeatGrid}
                   onApplyManualBpm={onApplyManualBpm}
                   onApplyTapTimestamps={onApplyTapTimestamps}
