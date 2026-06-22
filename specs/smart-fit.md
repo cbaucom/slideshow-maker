@@ -24,6 +24,12 @@ Default `cover` fit crops media when its aspect ratio differs from the project c
 | `project-store/media-loader.ts` | Extract `width`/`height` at import (image bitmap, video track) |
 | `sequence-planner/planner.ts` | Accept `aspectRatio`, resolve `smart-fit` using slide dims + canvas |
 | `composition/` | No changes — receives resolved fit modes only |
+| Editor thumbnails | `object-contain` + intrinsic `aspect-ratio` from slide dimensions (fallback 16:9) |
+
+## Thumbnails
+
+- Timeline blocks: media centered with `object-contain` inside the proportional-width block (full image visible, letterboxed in block).
+- Filmstrip cards: container `aspect-ratio` derived from slide `width`/`height`; falls back to 16:9 when unknown.
 
 ## Tests
 

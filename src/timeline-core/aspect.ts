@@ -14,6 +14,15 @@ export function isAspectRatio(value: unknown): value is AspectRatio {
   return typeof value === 'string' && (ASPECT_RATIOS as readonly string[]).includes(value)
 }
 
+export const DEFAULT_MEDIA_ASPECT_RATIO_CSS = '16 / 9'
+
+export function mediaAspectRatioCss(width?: number, height?: number): string {
+  if (width !== undefined && height !== undefined && width > 0 && height > 0) {
+    return `${width} / ${height}`
+  }
+  return DEFAULT_MEDIA_ASPECT_RATIO_CSS
+}
+
 export function dimensionsForAspectRatio(ratio: AspectRatio): CanvasDimensions {
   switch (ratio) {
     case '16:9':

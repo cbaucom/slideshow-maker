@@ -1,4 +1,4 @@
-export { ASPECT_RATIOS, DEFAULT_ASPECT_RATIO, dimensionsForAspectRatio, isAspectRatio } from './aspect'
+export { ASPECT_RATIOS, DEFAULT_ASPECT_RATIO, DEFAULT_MEDIA_ASPECT_RATIO_CSS, dimensionsForAspectRatio, isAspectRatio, mediaAspectRatioCss } from './aspect'
 export type { AspectRatio, CanvasDimensions } from './aspect'
 export { getMediaType, isSupportedAudio, isSupportedMedia, sortByFilename } from './media'
 export { addAudioClip, moveAudioClip, removeAudioClip, updateAudioClipGain } from './audioClips'

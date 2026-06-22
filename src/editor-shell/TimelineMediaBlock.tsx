@@ -60,7 +60,7 @@ export function TimelineMediaBlock({
       }}
       style={{ left: leftPx, width: widthPx }}
     >
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-sm">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-sm bg-black">
         {isTitleSlide(slide) ? (
           <div
             className="flex h-full w-full items-center justify-center px-1 text-xs font-medium"
@@ -73,7 +73,7 @@ export function TimelineMediaBlock({
           </div>
         ) : slide.type === 'video' ? (
           <video
-            className="h-full w-full object-cover"
+            className="max-h-full max-w-full object-contain"
             draggable={false}
             muted
             src={slide.blobUrl}
@@ -81,7 +81,7 @@ export function TimelineMediaBlock({
         ) : (
           <img
             alt={slide.filename}
-            className="h-full w-full object-cover"
+            className="max-h-full max-w-full object-contain"
             draggable={false}
             src={slide.blobUrl}
           />
