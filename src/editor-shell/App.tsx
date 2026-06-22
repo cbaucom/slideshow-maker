@@ -61,13 +61,11 @@ export function App() {
     recentProjects,
   } = project
 
-  const primaryClipFilename = audioClips[0]?.filename ?? null
-
   const beatGrid = useBeatGrid({
+    audioClips,
     audioTracks,
     onPersistChange: updateBeatGridPersist,
     persisted: { beatGridCache, manualBeatGrid },
-    primaryClipFilename,
   })
 
   useLoudness({
@@ -133,8 +131,9 @@ export function App() {
       undefined,
       planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
+      beatGrid.concatenatedBeatTimes,
     ),
-    [beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
+    [beatGrid.concatenatedBeatTimes, beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)

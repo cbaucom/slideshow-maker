@@ -4,6 +4,7 @@ import { isTitleSlide } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
 import type { BeatGrid } from '../beat-grid/types'
 import { nudge } from '../beat-grid/nudge'
+import { nudgeSlideEndFrame } from '../beat-grid/nudge-position'
 import { buildDuckingEnvelope, resolveVideoVolume } from './ducking'
 import type {
   AudioSegment,
@@ -102,6 +103,7 @@ export function plan(
   mediaMetadata?: Map<string, MediaMetadata>,
   audioClips?: AudioClipInput[],
   beatGrid?: BeatGrid,
+  concatenatedBeatTimesSecs?: number[],
 ): RenderPlan {
   if (slides.length === 0) {
     const audioTotal = totalAudioFrames(audioClips)
@@ -117,19 +119,30 @@ export function plan(
     return resolve(settings, slide.overrides)
   }
 
-  const beatSyncActive = !!beatGrid && settings.beatSync !== false
+  const beatSyncActive = settings.beatSync !== false
+    && (beatGrid !== undefined || (concatenatedBeatTimesSecs?.length ?? 0) > 0)
 
-  function getDuration(slide: Slide): number {
+  function getRawDuration(slide: Slide): number {
     if (isTitleSlide(slide)) return slide.durationInFrames
     const meta = mediaMetadata?.get(slide.filename)?.durationInFrames
     if (meta !== undefined) return meta
-    // For images, honour a per-slide imageDurationSecs override.
     let raw = slide.durationInFrames
     if (slide.type === 'image' && slide.overrides?.imageDurationSecs !== undefined) {
       raw = Math.round(resolved(slide).imageDurationSecs * FPS)
     }
-    if (beatSyncActive && slide.type !== 'video') {
-      return nudge(raw, beatGrid!, resolved(slide).energy ?? 'medium', FPS)
+    return raw
+  }
+
+  function getDuration(slide: Slide, startFrame: number): number {
+    const raw = getRawDuration(slide)
+    if (beatSyncActive && !isTitleSlide(slide) && slide.type !== 'video') {
+      const energy = resolved(slide).energy ?? 'medium'
+      if (concatenatedBeatTimesSecs?.length) {
+        return nudgeSlideEndFrame(startFrame, raw, concatenatedBeatTimesSecs, energy, FPS)
+      }
+      if (beatGrid) {
+        return nudge(raw, beatGrid, energy, FPS)
+      }
     }
     return raw
   }
@@ -143,7 +156,9 @@ export function plan(
     return TRANSITION_FRAMES[resolved(slide).transitionType]
   }
 
-  const slideDurations = slides.map((slide) => getDuration(slide))
+  const slideDurations = slides.map((slide) => (
+    concatenatedBeatTimesSecs?.length ? getRawDuration(slide) : getDuration(slide, 0)
+  ))
   const effectiveTrans = slides.map((slide, index) => {
     if (index === 0) return 0
     const transitionDur = getTransitionDur(slide)
@@ -169,7 +184,7 @@ export function plan(
       if (cursor >= totalFrames) break
 
       const slide = slides[index]
-      const fullDuration = slideDurations[index]
+      const fullDuration = getDuration(slide, cursor)
       const remaining = totalFrames - cursor
       const durationInFrames = Math.min(fullDuration, remaining)
       const slideResolved = resolved(slide)

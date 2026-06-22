@@ -588,3 +588,45 @@ describe('plan — beat sync energy effect (AC4)', () => {
     expect(avg(calmResult.entries)).toBeGreaterThan(avg(punchyResult.entries))
   })
 })
+
+describe('plan — concatenated beat times (multi-clip)', () => {
+  const AUDIO_CLIPS = [
+    { blobUrl: 'blob:a', durationInFrames: 60 },
+    { blobUrl: 'blob:b', durationInFrames: 60 },
+  ]
+
+  it('snaps slide end to beats on the concatenated timeline using start position', () => {
+    const concatenatedBeatTimes = [0, 1, 2.1, 3.1]
+    const slides = [makeSlide('a', 'image', 50)]
+    const result = plan(
+      slides,
+      BEAT_SYNC_ON,
+      undefined,
+      AUDIO_CLIPS,
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(result.entries[0].durationInFrames).toBe(63)
+    expect(result.totalFrames).toBe(120)
+  })
+
+  it('position-aware snap differs from uniform grid when slide starts in clip 2', () => {
+    const concatenatedBeatTimes = [0, 1, 2.1, 3.1]
+    const slides = [
+      makeSlide('a', 'image', 30),
+      makeSlide('b', 'image', 50),
+    ]
+    const withConcat = plan(
+      slides,
+      BEAT_SYNC_ON,
+      undefined,
+      AUDIO_CLIPS,
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(withConcat.entries[0].durationInFrames).toBe(30)
+    const secondEntry = withConcat.entries[1]
+    expect(secondEntry.startFrame).toBe(30)
+    expect(secondEntry.durationInFrames).toBe(63)
+  })
+})

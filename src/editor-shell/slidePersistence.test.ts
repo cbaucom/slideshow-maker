@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
 import type { MediaSlide } from '../timeline-core/types'
-import { SCHEMA_VERSION } from '../project-store'
+import { SCHEMA_VERSION, type SlideshowJson } from '../project-store'
 import type { JamendoAttribution } from '../jamendo/types'
 import type { BeatGrid } from '../beat-grid/types'
-import { audioClipsFromJson, slidesToJson } from './slidePersistence'
+import { audioClipsFromJson, beatGridCacheFromJson, slidesToJson } from './slidePersistence'
 
 const BEAT_GRID: BeatGrid = {
   beatIntervalSecs: 0.5,
@@ -85,6 +85,7 @@ describe('slidesToJson', () => {
   })
 
   it('includes beatGridCache when provided', () => {
+    const beatGridCache = { 'track.mp3': BEAT_GRID }
     const json = slidesToJson(
       DEFAULT_GLOBAL_SETTINGS,
       [makeSlide('a.jpg')],
@@ -92,9 +93,9 @@ describe('slidesToJson', () => {
       null,
       null,
       null,
-      BEAT_GRID,
+      beatGridCache,
     )
-    expect(json.beatGridCache).toEqual(BEAT_GRID)
+    expect(json.beatGridCache).toEqual(beatGridCache)
   })
 
   it('includes manualBeatGrid when provided', () => {
@@ -182,5 +183,41 @@ describe('audioClipsFromJson', () => {
 
   it('returns empty array when no audio is saved', () => {
     expect(audioClipsFromJson({ schemaVersion: 1, slides: [] })).toEqual([])
+  })
+})
+
+describe('beatGridCacheFromJson', () => {
+  it('reads per-file beatGridCache', () => {
+    const cache = beatGridCacheFromJson({
+      schemaVersion: 1,
+      slides: [],
+      audioClips: [{ filename: 'a.mp3' }],
+      beatGridCache: { 'a.mp3': BEAT_GRID },
+    })
+    expect(cache).toEqual({ 'a.mp3': BEAT_GRID })
+  })
+
+  it('migrates legacy single BeatGrid to first clip filename', () => {
+    const cache = beatGridCacheFromJson({
+      schemaVersion: 1,
+      slides: [],
+      audioClips: [{ filename: 'theme.mp3' }],
+      beatGridCache: BEAT_GRID,
+    } as unknown as SlideshowJson)
+    expect(cache).toEqual({ 'theme.mp3': BEAT_GRID })
+  })
+
+  it('migrates legacy BeatGrid using soundtrackFilename when no audioClips', () => {
+    const cache = beatGridCacheFromJson({
+      schemaVersion: 1,
+      slides: [],
+      soundtrackFilename: 'legacy.mp3',
+      beatGridCache: BEAT_GRID,
+    } as unknown as SlideshowJson)
+    expect(cache).toEqual({ 'legacy.mp3': BEAT_GRID })
+  })
+
+  it('returns undefined when beatGridCache is absent', () => {
+    expect(beatGridCacheFromJson({ schemaVersion: 1, slides: [] })).toBeUndefined()
   })
 })

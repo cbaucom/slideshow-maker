@@ -3,3 +3,5 @@ export type BeatGrid = {
   firstBeatOffsetSecs: number
   beatIntervalSecs: number
 }
+
+export type BeatGridCache = Record<string, BeatGrid>

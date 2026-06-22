@@ -1,4 +1,4 @@
-import type { BeatGrid } from '../beat-grid/types'
+import type { BeatGrid, BeatGridCache } from '../beat-grid/types'
 import type { LoudnessCache } from '../audio-analysis/types'
 import type { AudioClip, MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
@@ -43,6 +43,22 @@ export function audioClipsFromJson(saved: SlideshowJson): AudioClip[] {
   return []
 }
 
+function isLegacyBeatGrid(value: unknown): value is BeatGrid {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Record<string, unknown>
+  return typeof record.bpm === 'number'
+}
+
+export function beatGridCacheFromJson(saved: SlideshowJson): BeatGridCache | undefined {
+  const raw = saved.beatGridCache as BeatGrid | BeatGridCache | undefined
+  if (!raw) return undefined
+  if (isLegacyBeatGrid(raw)) {
+    const filename = saved.audioClips?.[0]?.filename ?? saved.soundtrackFilename
+    return filename ? { [filename]: raw } : undefined
+  }
+  return raw
+}
+
 export function slidesToJson(
   globalSettings: GlobalSettings,
   slides: Slide[],
@@ -50,7 +66,7 @@ export function slidesToJson(
   themeName?: ThemeName | null,
   soundtrackAttribution?: JamendoAttribution | null,
   aspectRatio?: AspectRatio | null,
-  beatGridCache?: BeatGrid | null,
+  beatGridCache?: BeatGridCache | null,
   manualBeatGrid?: BeatGrid | null,
   loudnessCache?: LoudnessCache | null,
 ): SlideshowJson {
@@ -66,7 +82,7 @@ export function slidesToJson(
           })),
         }
       : {}),
-    ...(beatGridCache ? { beatGridCache } : {}),
+    ...(beatGridCache && Object.keys(beatGridCache).length > 0 ? { beatGridCache } : {}),
     ...(loudnessCache && Object.keys(loudnessCache).length > 0 ? { loudnessCache } : {}),
     ...(manualBeatGrid ? { manualBeatGrid } : {}),
     ...(themeName ? { themeName } : {}),

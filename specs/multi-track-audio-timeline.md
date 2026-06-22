@@ -50,3 +50,9 @@ Closes #47.
 When audio exceeds visual timeline, `totalFrames` = sum of clip durations and slides loop in order until audio ends. Partial tail truncates last slide. Visual wins when longer than audio.
 
 Closes #46.
+
+## Slice 23 — Beat grid across multi-clip timeline (done)
+
+Per-file `beatGridCache` in slideshow.json (migrates legacy single `BeatGrid`). `buildConcatenatedBeatTimes` shifts each clip's beats by clip start. Manual beat grid spans total audio duration. Planner uses position-aware `nudgeSlideEndFrame` when concatenated beat times are provided. `useBeatGrid` analyzes only clips missing from cache; reorder preserves cache.
+
+Closes #49.

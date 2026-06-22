@@ -19,10 +19,11 @@ import {
   type SlideshowJson,
 } from '../project-store'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
-import { audioClipsFromJson, reconcileSlides, slidesToJson } from './slidePersistence'
+import { audioClipsFromJson, beatGridCacheFromJson, reconcileSlides, slidesToJson } from './slidePersistence'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { downloadTrack, sanitizeFilename } from '../jamendo'
 import type { BeatGrid } from '../beat-grid'
+import type { BeatGridCache } from '../beat-grid/types'
 import type { LoudnessCache } from '../audio-analysis/types'
 import { FPS } from './PlayerPane'
 
@@ -53,7 +54,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const [slides, setSlides] = useState<Slide[]>([])
   const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
   const [themeName, setThemeName] = useState<ThemeName | null>(null)
-  const [beatGridCache, setBeatGridCache] = useState<BeatGrid | undefined>()
+  const [beatGridCache, setBeatGridCache] = useState<BeatGridCache | undefined>()
   const [loudnessCache, setLoudnessCache] = useState<LoudnessCache | undefined>()
   const [manualBeatGrid, setManualBeatGrid] = useState<BeatGrid | undefined>()
   const [loading, setLoading] = useState(false)
@@ -151,7 +152,9 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         setThemeName(restoredThemeName)
         setSlides(finalSlides)
         setSoundtrackAttribution(restoredAttribution)
-        setBeatGridCache(restoredClips.length > 0 ? savedData?.beatGridCache : undefined)
+        setBeatGridCache(
+          savedData && restoredClips.length > 0 ? beatGridCacheFromJson(savedData) : undefined,
+        )
         setLoudnessCache(savedData?.loudnessCache)
         setManualBeatGrid(restoredClips.length > 0 ? savedData?.manualBeatGrid : undefined)
         setProjectName(handle.name)
@@ -245,23 +248,20 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   }, [])
 
   const updateAudioClips = useCallback((clips: AudioClip[]) => {
-    const primaryChanged = audioClips[0]?.filename !== clips[0]?.filename
-    if (primaryChanged || clips.length === 0) {
+    if (clips.length === 0) {
       setBeatGridCache(undefined)
       setManualBeatGrid(undefined)
-    }
-    if (clips.length === 0) {
       setSoundtrackAttribution(null)
     }
     setAudioClips(clips)
-  }, [audioClips])
+  }, [])
 
   const updateLoudnessCache = useCallback((cache: LoudnessCache) => {
     setLoudnessCache(cache)
   }, [])
 
   const updateBeatGridPersist = useCallback((update: {
-    beatGridCache?: BeatGrid
+    beatGridCache?: BeatGridCache
     manualBeatGrid?: BeatGrid
   }) => {
     if ('beatGridCache' in update) setBeatGridCache(update.beatGridCache)
