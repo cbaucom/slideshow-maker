@@ -1,36 +1,48 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
+import type { AudioClip } from '../timeline-core/types'
 import type { AudioTrack } from '../project-store'
 import {
-  decodeMono,
-  detectBeatGrid,
   manualBeatGridFromBpm,
+  resolveConcatenatedBeatTimes,
   resolveEffectiveBeatGrid,
   tapToBpm,
   type BeatGrid,
+  type BeatGridCache,
 } from '../beat-grid'
+import { FPS } from './PlayerPane'
 
 export type BeatGridAnalysisStatus = 'analyzing' | 'error' | 'idle' | 'ready'
 
 type PersistedBeatGrid = {
-  beatGridCache?: BeatGrid
+  beatGridCache?: BeatGridCache
   manualBeatGrid?: BeatGrid
 }
 
 type Options = {
+  audioClips: AudioClip[]
   audioTracks: AudioTrack[]
   onPersistChange: (update: PersistedBeatGrid) => void
   persisted: PersistedBeatGrid
-  primaryClipFilename: string | null
+  pendingBeatFilenames: string[]
 }
 
 export function useBeatGrid({
+  audioClips,
   audioTracks,
   onPersistChange,
   persisted,
-  primaryClipFilename,
+  pendingBeatFilenames,
 }: Options) {
-  const [analysisFailedForFilename, setAnalysisFailedForFilename] = useState<string | null>(null)
+  const clipTimings = useMemo(
+    () => audioClips.flatMap((clip) => {
+      const track = audioTracks.find((entry) => entry.filename === clip.filename)
+      if (!track) return []
+      return [{ filename: clip.filename, durationInFrames: track.durationInFrames }]
+    }),
+    [audioClips, audioTracks],
+  )
 
+  const primaryClipFilename = audioClips[0]?.filename ?? null
   const soundtrack = primaryClipFilename
     ? audioTracks.find((track) => track.filename === primaryClipFilename)
     : undefined
@@ -40,21 +52,25 @@ export function useBeatGrid({
     persisted.beatGridCache,
   )
 
+  const concatenatedBeatTimes = useMemo(
+    () => resolveConcatenatedBeatTimes(
+      persisted.manualBeatGrid,
+      persisted.beatGridCache,
+      clipTimings,
+      FPS,
+    ),
+    [clipTimings, persisted.beatGridCache, persisted.manualBeatGrid],
+  )
+
   const analysisStatus = useMemo((): BeatGridAnalysisStatus => {
-    if (!soundtrack) return 'idle'
-    if (persisted.manualBeatGrid || persisted.beatGridCache) return 'ready'
-    if (analysisFailedForFilename === soundtrack.filename) return 'error'
+    if (audioClips.length === 0) return 'idle'
+    if (persisted.manualBeatGrid) return 'ready'
+    if (pendingBeatFilenames.length === 0) return 'ready'
     return 'analyzing'
-  }, [
-    analysisFailedForFilename,
-    persisted.beatGridCache,
-    persisted.manualBeatGrid,
-    soundtrack,
-  ])
+  }, [audioClips.length, pendingBeatFilenames.length, persisted.manualBeatGrid])
 
   const setManualBeatGrid = useCallback((grid: BeatGrid | undefined) => {
     onPersistChange({ manualBeatGrid: grid })
-    setAnalysisFailedForFilename(null)
   }, [onPersistChange])
 
   const clearManualBeatGrid = useCallback(() => {
@@ -69,41 +85,12 @@ export function useBeatGrid({
     setManualBeatGrid(tapToBpm(tapTimestampsMs))
   }, [setManualBeatGrid])
 
-  useEffect(() => {
-    if (!soundtrack || persisted.manualBeatGrid || persisted.beatGridCache) {
-      return
-    }
-
-    let cancelled = false
-
-    async function analyze() {
-      try {
-        const response = await fetch(soundtrack!.blobUrl)
-        const buffer = await response.arrayBuffer()
-        const { sampleRate, samples } = await decodeMono(buffer)
-        const grid = detectBeatGrid(samples, sampleRate)
-        if (cancelled) return
-        onPersistChange({ beatGridCache: grid })
-      } catch {
-        if (cancelled) return
-        setAnalysisFailedForFilename(soundtrack!.filename)
-      }
-    }
-
-    void analyze()
-    return () => { cancelled = true }
-  }, [
-    onPersistChange,
-    persisted.beatGridCache,
-    persisted.manualBeatGrid,
-    soundtrack,
-  ])
-
   return {
     analysisStatus,
     applyManualBpm,
     applyTapTimestamps,
     clearManualBeatGrid,
+    concatenatedBeatTimes,
     effectiveBeatGrid,
     setManualBeatGrid,
     soundtrack,

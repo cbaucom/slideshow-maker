@@ -1,6 +1,6 @@
 import type { AspectRatio } from '../timeline-core/aspect'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
-import type { BeatGrid } from '../beat-grid/types'
+import type { BeatGrid, BeatGridCache } from '../beat-grid/types'
 import type { LoudnessCache } from '../audio-analysis/types'
 import type { JamendoAttribution } from '../jamendo/types'
 
@@ -43,7 +43,7 @@ export type SlideshowJson = {
   slides: SerializedSlide[]
   soundtrackFilename?: string
   themeName?: ThemeName
-  beatGridCache?: BeatGrid
+  beatGridCache?: BeatGridCache
   manualBeatGrid?: BeatGrid
   soundtrackAttribution?: JamendoAttribution
 }

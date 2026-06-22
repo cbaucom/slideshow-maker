@@ -7,7 +7,18 @@ import type { MediaSlide } from '../timeline-core/types'
 import { createTitleSlide } from '../timeline-core/timeline'
 
 function makeSlide(id: string, type: 'image' | 'video', durationInFrames: number): MediaSlide {
-  return { id, filename: `${id}.${type === 'image' ? 'jpg' : 'mp4'}`, type, durationInFrames, blobUrl: '', excluded: false }
+  const slide: MediaSlide = {
+    blobUrl: '',
+    durationInFrames,
+    excluded: false,
+    filename: `${id}.${type === 'image' ? 'jpg' : 'mp4'}`,
+    id,
+    type,
+  }
+  if (type === 'image') {
+    return { ...slide, overrides: { imageDurationSecs: durationInFrames / 30 } }
+  }
+  return slide
 }
 
 const IMG_90 = makeSlide('a', 'image', 90)
@@ -586,5 +597,63 @@ describe('plan — beat sync energy effect (AC4)', () => {
       entries.reduce((s, e) => s + e.durationInFrames, 0) / entries.length
 
     expect(avg(calmResult.entries)).toBeGreaterThan(avg(punchyResult.entries))
+  })
+})
+
+describe('plan — concatenated beat times (multi-clip)', () => {
+  const AUDIO_CLIPS = [
+    { blobUrl: 'blob:a', durationInFrames: 60 },
+    { blobUrl: 'blob:b', durationInFrames: 60 },
+  ]
+
+  it('snaps slide end to beats on the concatenated timeline using start position', () => {
+    const concatenatedBeatTimes = [0, 1, 2.1, 3.1]
+    const slides = [makeSlide('a', 'image', 50)]
+    const result = plan(
+      slides,
+      BEAT_SYNC_ON,
+      undefined,
+      AUDIO_CLIPS,
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(result.entries[0].durationInFrames).toBe(63)
+    expect(result.totalFrames).toBe(120)
+  })
+
+  it('position-aware snap differs from uniform grid when slide starts in clip 2', () => {
+    const concatenatedBeatTimes = [0, 1, 2.1, 3.1]
+    const slides = [
+      makeSlide('a', 'image', 30),
+      makeSlide('b', 'image', 50),
+    ]
+    const withConcat = plan(
+      slides,
+      BEAT_SYNC_ON,
+      undefined,
+      AUDIO_CLIPS,
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(withConcat.entries[0].durationInFrames).toBe(30)
+    const secondEntry = withConcat.entries[1]
+    expect(secondEntry.startFrame).toBe(30)
+    expect(secondEntry.durationInFrames).toBe(63)
+  })
+
+  it('terminates when beat-snapped durations are shorter than crossfade overlap', () => {
+    const concatenatedBeatTimes = Array.from({ length: 1200 }, (_, index) => index * 0.5)
+    const slides = Array.from({ length: 20 }, (_, index) => makeSlide(`slide-${index}`, 'image', 90))
+    const classic = { ...BEAT_SYNC_ON, transitionType: 'crossfade' as const }
+    const result = plan(
+      slides,
+      classic,
+      undefined,
+      [{ blobUrl: 'blob:audio', durationInFrames: 18000 }],
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(result.entries.length).toBeLessThan(5000)
+    expect(result.totalFrames).toBe(18000)
   })
 })

@@ -1,37 +1,33 @@
 import { describe, expect, it } from 'vitest'
 import { resolveEffectiveBeatGrid } from './manual'
-import type { BeatGrid } from './types'
+import type { BeatGrid, BeatGridCache } from './types'
 
 const AUTO: BeatGrid = { bpm: 118, beatIntervalSecs: 60 / 118, firstBeatOffsetSecs: 0.05 }
 const MANUAL: BeatGrid = { bpm: 120, beatIntervalSecs: 0.5, firstBeatOffsetSecs: 0.1 }
 
-describe('resolveEffectiveBeatGrid — priority (AC2)', () => {
+describe('resolveEffectiveBeatGrid — priority', () => {
+  const cache: BeatGridCache = { 'track.mp3': AUTO }
+
   it('returns manual grid when both manual and cache are present', () => {
-    const result = resolveEffectiveBeatGrid(MANUAL, AUTO)
-    expect(result).toEqual(MANUAL)
+    expect(resolveEffectiveBeatGrid(MANUAL, cache)).toEqual(MANUAL)
   })
 
   it('returns auto-detected cache when no manual override is set', () => {
-    const result = resolveEffectiveBeatGrid(undefined, AUTO)
-    expect(result).toEqual(AUTO)
+    expect(resolveEffectiveBeatGrid(undefined, cache)).toEqual(AUTO)
   })
 
   it('returns undefined when neither manual nor cache exists', () => {
-    const result = resolveEffectiveBeatGrid(undefined, undefined)
-    expect(result).toBeUndefined()
+    expect(resolveEffectiveBeatGrid(undefined, undefined)).toBeUndefined()
   })
 
-  it('manual still wins after cache is updated (re-analysis does not override manual)', () => {
-    const updatedCache: BeatGrid = { bpm: 115, beatIntervalSecs: 60 / 115, firstBeatOffsetSecs: 0.02 }
-    // Simulate re-analysis: cache changes but manual stays
-    const result = resolveEffectiveBeatGrid(MANUAL, updatedCache)
-    expect(result).toEqual(MANUAL)
-    expect(result?.bpm).toBe(120)
+  it('manual still wins after cache is updated', () => {
+    const updatedCache: BeatGridCache = {
+      'track.mp3': { bpm: 115, beatIntervalSecs: 60 / 115, firstBeatOffsetSecs: 0.02 },
+    }
+    expect(resolveEffectiveBeatGrid(MANUAL, updatedCache)).toEqual(MANUAL)
   })
 
   it('returns cache once manual is cleared', () => {
-    // Simulate clearing: pass undefined for manual
-    const result = resolveEffectiveBeatGrid(undefined, AUTO)
-    expect(result).toEqual(AUTO)
+    expect(resolveEffectiveBeatGrid(undefined, cache)).toEqual(AUTO)
   })
 })

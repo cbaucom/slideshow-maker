@@ -61,13 +61,14 @@ export async function enumerateFolder(
 
   const createdUrls: string[] = []
   try {
-    const slides: MediaSlide[] = []
-    for (const filename of sorted) {
-      const file = filesByName.get(filename)!
-      const slide = await createMediaSlideFromFile(file)
-      createdUrls.push(slide.blobUrl)
-      slides.push(slide)
-    }
+    const slides = await Promise.all(
+      sorted.map(async (filename) => {
+        const file = filesByName.get(filename)!
+        const slide = await createMediaSlideFromFile(file)
+        createdUrls.push(slide.blobUrl)
+        return slide
+      }),
+    )
     return slides
   } catch (error) {
     createdUrls.forEach((url) => URL.revokeObjectURL(url))

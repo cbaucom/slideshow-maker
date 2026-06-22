@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useMemo, useRef, useState, startTransition } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
@@ -24,8 +24,8 @@ import { StoryboardFilmstrip } from './StoryboardFilmstrip'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
+import { useAudioClipAnalysis } from './useAudioClipAnalysis'
 import { useBeatGrid } from './useBeatGrid'
-import { useLoudness } from './useLoudness'
 import { resolveEffectiveGainDb } from '../audio-analysis'
 
 export function App() {
@@ -51,6 +51,7 @@ export function App() {
     themeName,
     setThemeName,
     updateAudioClips,
+    updateBeatGridCacheEntry,
     updateBeatGridPersist,
     updateLoudnessCache,
     loading,
@@ -61,19 +62,22 @@ export function App() {
     recentProjects,
   } = project
 
-  const primaryClipFilename = audioClips[0]?.filename ?? null
-
-  const beatGrid = useBeatGrid({
+  const { pendingBeatFilenames } = useAudioClipAnalysis({
+    audioClips,
     audioTracks,
-    onPersistChange: updateBeatGridPersist,
-    persisted: { beatGridCache, manualBeatGrid },
-    primaryClipFilename,
+    beatGridCache,
+    loudnessCache,
+    manualBeatGrid,
+    onBeatGridCacheChange: updateBeatGridCacheEntry,
+    onLoudnessCacheChange: updateLoudnessCache,
   })
 
-  useLoudness({
+  const beatGrid = useBeatGrid({
+    audioClips,
     audioTracks,
-    loudnessCache,
-    onPersistChange: updateLoudnessCache,
+    onPersistChange: updateBeatGridPersist,
+    pendingBeatFilenames,
+    persisted: { beatGridCache, manualBeatGrid },
   })
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
@@ -92,10 +96,11 @@ export function App() {
 
   const handleThemeChange = useCallback((name: ThemeName) => {
     const themeSettings = applyTheme(name)
-    setGlobalSettings(themeSettings)
-    setThemeName(name)
-    setSlides(prev => applyImageDuration(prev, themeSettings.imageDurationSecs))
-  }, [setGlobalSettings, setSlides, setThemeName])
+    startTransition(() => {
+      setThemeName(name)
+      setGlobalSettings((previous) => ({ ...previous, ...themeSettings }))
+    })
+  }, [setGlobalSettings, setThemeName])
 
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))
@@ -126,15 +131,24 @@ export function App() {
     [audioClips, audioTracks, loudnessCache],
   )
 
+  const planBeatTimes = beatGrid.analysisStatus === 'analyzing'
+    ? undefined
+    : beatGrid.concatenatedBeatTimes
+
+  const deferredSlides = useDeferredValue(slides)
+  const deferredGlobalSettings = useDeferredValue(globalSettings)
+  const isReplanning = deferredSlides !== slides || deferredGlobalSettings !== globalSettings
+
   const renderPlan = useMemo(
     () => plan(
-      filterIncluded(slides),
-      globalSettings,
+      filterIncluded(deferredSlides),
+      deferredGlobalSettings,
       undefined,
       planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
+      planBeatTimes,
     ),
-    [beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
+    [beatGrid.effectiveBeatGrid, deferredGlobalSettings, deferredSlides, planAudioClips, planBeatTimes],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)
@@ -196,6 +210,12 @@ export function App() {
           Loading media…
         </div>
       )}
+
+      {isReplanning ? (
+        <div className="shrink-0 border-b bg-blue-950/40 px-4 py-1.5 text-sm text-blue-300">
+          Updating preview…
+        </div>
+      ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col">
         {folderOpen ? (
