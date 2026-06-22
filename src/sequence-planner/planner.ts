@@ -226,7 +226,11 @@ export function plan(
       const hasNextInPass = index < slides.length - 1
       const isFullSlide = durationInFrames === fullDuration
       if (hasNextInPass && isFullSlide && cursor + durationInFrames < totalFrames) {
-        cursor += durationInFrames - effectiveTrans[index + 1]
+        const nextTransitionOverlap = Math.min(
+          effectiveTrans[index + 1],
+          Math.floor(durationInFrames / 2),
+        )
+        cursor += Math.max(1, durationInFrames - nextTransitionOverlap)
       } else {
         cursor += durationInFrames
       }

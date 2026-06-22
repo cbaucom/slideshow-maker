@@ -640,4 +640,20 @@ describe('plan — concatenated beat times (multi-clip)', () => {
     expect(secondEntry.startFrame).toBe(30)
     expect(secondEntry.durationInFrames).toBe(63)
   })
+
+  it('terminates when beat-snapped durations are shorter than crossfade overlap', () => {
+    const concatenatedBeatTimes = Array.from({ length: 1200 }, (_, index) => index * 0.5)
+    const slides = Array.from({ length: 20 }, (_, index) => makeSlide(`slide-${index}`, 'image', 90))
+    const classic = { ...BEAT_SYNC_ON, transitionType: 'crossfade' as const }
+    const result = plan(
+      slides,
+      classic,
+      undefined,
+      [{ blobUrl: 'blob:audio', durationInFrames: 18000 }],
+      undefined,
+      concatenatedBeatTimes,
+    )
+    expect(result.entries.length).toBeLessThan(5000)
+    expect(result.totalFrames).toBe(18000)
+  })
 })
