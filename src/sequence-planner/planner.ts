@@ -41,6 +41,38 @@ const KB_PRESETS: KenBurnsVector[] = [
 
 const KB_ZOOM_IN_PRESETS: KenBurnsVector[] = [KB_PRESETS[0], KB_PRESETS[2]]
 
+function totalAudioFrames(audioClips?: AudioClipInput[]): number {
+  if (!audioClips?.length) return 0
+  return audioClips.reduce((sum, clip) => sum + clip.durationInFrames, 0)
+}
+
+function computePassDuration(slideDurations: number[], effectiveTrans: number[]): number {
+  let cursor = 0
+  for (let index = 0; index < slideDurations.length; index++) {
+    if (index < slideDurations.length - 1) {
+      cursor += slideDurations[index] - effectiveTrans[index + 1]
+    } else {
+      cursor += slideDurations[index]
+    }
+  }
+  return cursor
+}
+
+function loopBoundaryTransition(
+  prevDuration: number,
+  currDuration: number,
+  transitionType: TransitionType,
+  maxTransitionDur: number,
+): TransitionSpec | undefined {
+  const transDur = Math.min(
+    maxTransitionDur,
+    Math.floor(prevDuration / 2),
+    Math.floor(currDuration / 2),
+  )
+  if (transDur <= 0) return undefined
+  return { type: transitionType, durationInFrames: transDur }
+}
+
 function buildAudioOutput(
   entries: RenderPlanEntry[],
   audioClips?: AudioClipInput[],
@@ -72,10 +104,11 @@ export function plan(
   beatGrid?: BeatGrid,
 ): RenderPlan {
   if (slides.length === 0) {
+    const audioTotal = totalAudioFrames(audioClips)
     return {
       entries: [],
       ...buildAudioOutput([], audioClips),
-      totalFrames: 0,
+      totalFrames: audioTotal,
     }
   }
 
@@ -106,69 +139,89 @@ export function plan(
     return slide.type === 'video' ? 'contain' : resolved(slide).fitMode
   }
 
-  // Per-slide resolved transition duration (inbound = this slide's resolved type).
   function getTransitionDur(slide: Slide): number {
     return TRANSITION_FRAMES[resolved(slide).transitionType]
   }
 
-  // Pass 1: compute effective transition duration for each non-first slide.
-  // Clamp to half of each adjacent slide so the transition never consumes
-  // more than the slide it belongs to (Remotion requirement).
-  const effectiveTrans: number[] = slides.map((slide, i) => {
-    if (i === 0) return 0
-    const prevDur = getDuration(slides[i - 1])
-    const currDur = getDuration(slide)
-    const tDur = getTransitionDur(slide)
-    return Math.min(tDur, Math.floor(prevDur / 2), Math.floor(currDur / 2))
+  const slideDurations = slides.map((slide) => getDuration(slide))
+  const effectiveTrans = slides.map((slide, index) => {
+    if (index === 0) return 0
+    const transitionDur = getTransitionDur(slide)
+    return Math.min(
+      transitionDur,
+      Math.floor(slideDurations[index - 1] / 2),
+      Math.floor(slideDurations[index] / 2),
+    )
   })
 
-  // Pass 2: build entries.
-  // photoIndex counts only non-video slides so Ken Burns presets alternate
-  // correctly even when photos and videos are interspersed.
+  const passDuration = computePassDuration(slideDurations, effectiveTrans)
+  const audioTotal = totalAudioFrames(audioClips)
+  const totalFrames = audioClips?.length
+    ? Math.max(passDuration, audioTotal)
+    : passDuration
+
   const entries: RenderPlanEntry[] = []
   let cursor = 0
   let photoIndex = 0
 
-  for (let i = 0; i < slides.length; i++) {
-    const slide = slides[i]
-    const durationInFrames = getDuration(slide)
-    const slideResolved = resolved(slide)
+  while (cursor < totalFrames) {
+    for (let index = 0; index < slides.length; index++) {
+      if (cursor >= totalFrames) break
 
-    const transitionIn: TransitionSpec | undefined =
-      i === 0
-        ? undefined
-        : { type: slideResolved.transitionType, durationInFrames: effectiveTrans[i] }
+      const slide = slides[index]
+      const fullDuration = slideDurations[index]
+      const remaining = totalFrames - cursor
+      const durationInFrames = Math.min(fullDuration, remaining)
+      const slideResolved = resolved(slide)
+      const isLoopStart = entries.length > 0 && index === 0
 
-    const kbPresets =
-      slideResolved.kenBurnsMode === 'zoom-in-only' ? KB_ZOOM_IN_PRESETS : KB_PRESETS
-    const kenBurns: KenBurnsVector | null =
-      !isTitleSlide(slide) && slideResolved.kenBurns && slide.type !== 'video'
-        ? kbPresets[photoIndex % kbPresets.length]
-        : null
+      let transitionIn: TransitionSpec | undefined
+      if (index === 0 && isLoopStart) {
+        transitionIn = loopBoundaryTransition(
+          slideDurations[slides.length - 1],
+          fullDuration,
+          slideResolved.transitionType,
+          getTransitionDur(slide),
+        )
+      } else if (index > 0 && durationInFrames === fullDuration) {
+        transitionIn = {
+          type: slideResolved.transitionType,
+          durationInFrames: effectiveTrans[index],
+        }
+      }
 
-    if (!isTitleSlide(slide) && slide.type !== 'video') photoIndex++
+      const kbPresets =
+        slideResolved.kenBurnsMode === 'zoom-in-only' ? KB_ZOOM_IN_PRESETS : KB_PRESETS
+      const kenBurns: KenBurnsVector | null =
+        !isTitleSlide(slide) && slideResolved.kenBurns && slide.type !== 'video'
+          ? kbPresets[photoIndex % kbPresets.length]
+          : null
 
-    entries.push({
-      slide,
-      startFrame: cursor,
-      durationInFrames,
-      transitionIn,
-      fitMode: getFitMode(slide),
-      kenBurns,
-      videoVolume: resolveVideoVolume(slide),
-    })
+      if (!isTitleSlide(slide) && slide.type !== 'video') photoIndex++
 
-    // Advance by this slide's duration minus the NEXT slide's inbound transition overlap.
-    if (i < slides.length - 1) {
-      cursor += durationInFrames - effectiveTrans[i + 1]
-    } else {
-      cursor += durationInFrames
+      entries.push({
+        slide,
+        startFrame: cursor,
+        durationInFrames,
+        transitionIn,
+        fitMode: getFitMode(slide),
+        kenBurns,
+        videoVolume: resolveVideoVolume(slide),
+      })
+
+      const hasNextInPass = index < slides.length - 1
+      const isFullSlide = durationInFrames === fullDuration
+      if (hasNextInPass && isFullSlide && cursor + durationInFrames < totalFrames) {
+        cursor += durationInFrames - effectiveTrans[index + 1]
+      } else {
+        cursor += durationInFrames
+      }
     }
   }
 
   return {
     entries,
     ...buildAudioOutput(entries, audioClips),
-    totalFrames: cursor,
+    totalFrames,
   }
 }

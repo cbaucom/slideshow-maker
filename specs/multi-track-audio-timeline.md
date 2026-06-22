@@ -44,3 +44,9 @@ SoundtrackPanel: ordered clip list, add / reorder / remove. Beat grid uses first
 `audio-analysis` module: RMS normalization to -18 dBFS. `loudnessCache` in slideshow.json (filename + byteLength). Manual `gainDb` on clip overrides auto offset. Per-clip dB input in SoundtrackPanel.
 
 Closes #47.
+
+## Slice 21 — Audio-driven duration + media loop (done)
+
+When audio exceeds visual timeline, `totalFrames` = sum of clip durations and slides loop in order until audio ends. Partial tail truncates last slide. Visual wins when longer than audio.
+
+Closes #46.
