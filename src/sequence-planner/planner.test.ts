@@ -7,7 +7,18 @@ import type { MediaSlide } from '../timeline-core/types'
 import { createTitleSlide } from '../timeline-core/timeline'
 
 function makeSlide(id: string, type: 'image' | 'video', durationInFrames: number): MediaSlide {
-  return { id, filename: `${id}.${type === 'image' ? 'jpg' : 'mp4'}`, type, durationInFrames, blobUrl: '', excluded: false }
+  const slide: MediaSlide = {
+    blobUrl: '',
+    durationInFrames,
+    excluded: false,
+    filename: `${id}.${type === 'image' ? 'jpg' : 'mp4'}`,
+    id,
+    type,
+  }
+  if (type === 'image') {
+    return { ...slide, overrides: { imageDurationSecs: durationInFrames / 30 } }
+  }
+  return slide
 }
 
 const IMG_90 = makeSlide('a', 'image', 90)

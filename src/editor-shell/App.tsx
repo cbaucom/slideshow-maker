@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, startTransition } from 'react'
+import { useCallback, useDeferredValue, useMemo, useRef, useState, startTransition } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
@@ -99,9 +99,8 @@ export function App() {
     startTransition(() => {
       setThemeName(name)
       setGlobalSettings((previous) => ({ ...previous, ...themeSettings }))
-      setSlides((previous) => applyImageDuration(previous, themeSettings.imageDurationSecs))
     })
-  }, [setGlobalSettings, setSlides, setThemeName])
+  }, [setGlobalSettings, setThemeName])
 
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))
@@ -136,16 +135,20 @@ export function App() {
     ? undefined
     : beatGrid.concatenatedBeatTimes
 
+  const deferredSlides = useDeferredValue(slides)
+  const deferredGlobalSettings = useDeferredValue(globalSettings)
+  const isReplanning = deferredSlides !== slides || deferredGlobalSettings !== globalSettings
+
   const renderPlan = useMemo(
     () => plan(
-      filterIncluded(slides),
-      globalSettings,
+      filterIncluded(deferredSlides),
+      deferredGlobalSettings,
       undefined,
       planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
       planBeatTimes,
     ),
-    [beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, planBeatTimes, slides],
+    [beatGrid.effectiveBeatGrid, deferredGlobalSettings, deferredSlides, planAudioClips, planBeatTimes],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)
@@ -207,6 +210,12 @@ export function App() {
           Loading media…
         </div>
       )}
+
+      {isReplanning ? (
+        <div className="shrink-0 border-b bg-blue-950/40 px-4 py-1.5 text-sm text-blue-300">
+          Updating preview…
+        </div>
+      ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col">
         {folderOpen ? (
