@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useMemo, useRef, useState, startTransition } from 'react'
+import { useCallback, useMemo, useRef, useState, startTransition } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
@@ -99,8 +99,9 @@ export function App() {
     startTransition(() => {
       setThemeName(name)
       setGlobalSettings((previous) => ({ ...previous, ...themeSettings }))
+      setSlides((previous) => applyImageDuration(previous, themeSettings.imageDurationSecs))
     })
-  }, [setGlobalSettings, setThemeName])
+  }, [setGlobalSettings, setSlides, setThemeName])
 
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, overrides } : s))

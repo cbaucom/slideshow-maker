@@ -83,23 +83,49 @@ function findActiveEntries(entries: RenderPlanEntry[], frame: number): RenderPla
   return active
 }
 
-function ActiveTimeline({ entries, frame }: { entries: RenderPlanEntry[]; frame: number }) {
-  const activeEntries = findActiveEntries(entries, frame)
-  return activeEntries.map((entry) => (
+function planUsesTimedTransitions(entries: RenderPlanEntry[]): boolean {
+  return entries.some(
+    (entry) => entry.transitionIn !== undefined && entry.transitionIn.durationInFrames > 0,
+  )
+}
+
+function SlideEntryView({ entry }: { entry: RenderPlanEntry }) {
+  return isTitleSlide(entry.slide)
+    ? <TitleSlideView entry={entry as TitleRenderPlanEntry} />
+    : <MediaSlideView entry={entry as MediaRenderPlanEntry} />
+}
+
+function AbsoluteTimeline({ entries }: { entries: RenderPlanEntry[] }) {
+  return entries.map((entry) => (
     <Sequence
       durationInFrames={entry.durationInFrames}
       from={entry.startFrame}
-      key={entry.slide.id}
-      premountFor={0}
+      key={`${entry.startFrame}-${entry.slide.id}`}
+      premountFor={30}
     >
       <SlideEntryView entry={entry} />
     </Sequence>
   ))
 }
 
-function FrameTimeline({ entries }: { entries: RenderPlanEntry[] }) {
-  const frame = useCurrentFrame()
-  return <ActiveTimeline entries={entries} frame={frame} />
+function TransitionSeriesTimeline({ entries }: { entries: RenderPlanEntry[] }) {
+  return (
+    <TransitionSeries>
+      {entries.map((entry) => (
+        <React.Fragment key={`${entry.startFrame}-${entry.slide.id}`}>
+          {entry.transitionIn && entry.transitionIn.durationInFrames > 0 ? (
+            <TransitionSeries.Transition
+              presentation={getPresentation(entry.transitionIn.type)}
+              timing={linearTiming({ durationInFrames: entry.transitionIn.durationInFrames })}
+            />
+          ) : null}
+          <TransitionSeries.Sequence durationInFrames={entry.durationInFrames} premountFor={30}>
+            <SlideEntryView entry={entry} />
+          </TransitionSeries.Sequence>
+        </React.Fragment>
+      ))}
+    </TransitionSeries>
+  )
 }
 
 export function SlideshowComposition({ plan }: SlideshowProps) {
@@ -116,7 +142,11 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
       {plan.audioSegments && plan.duckingEnvelope ? (
         <AudioSegments duckingEnvelope={plan.duckingEnvelope} segments={plan.audioSegments} />
       ) : null}
-      <FrameTimeline entries={plan.entries} />
+      {planUsesTimedTransitions(plan.entries) ? (
+        <TransitionSeriesTimeline entries={plan.entries} />
+      ) : (
+        <AbsoluteTimeline entries={plan.entries} />
+      )}
     </AbsoluteFill>
   )
 }
