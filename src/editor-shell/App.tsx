@@ -9,7 +9,6 @@ import {
   filterIncluded,
   applyImageDuration,
   createTitleSlide,
-  updateAudioClipGain,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
@@ -166,10 +165,6 @@ export function App() {
     setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
   }, [renderPlan])
 
-  const handleAudioClipGainChange = useCallback((clipIndex: number, gainDb: number | undefined) => {
-    updateAudioClips(updateAudioClipGain(audioClips, clipIndex, gainDb))
-  }, [audioClips, updateAudioClips])
-
   const handleSlideClick = useCallback((id: string) => {
     const startFrame = startFrameForSlideId(renderPlan, id)
     if (startFrame !== null) {
@@ -250,8 +245,6 @@ export function App() {
                 currentFrame={currentFrame}
                 currentSlideId={currentSlideId}
                 loudnessCache={loudnessCache}
-                onAudioClipGainChange={handleAudioClipGainChange}
-                onAudioClipsChange={updateAudioClips}
                 onReorder={handleReorder}
                 onSeek={handleSeek}
                 onSlideClick={handleSlideClick}
@@ -279,6 +272,7 @@ export function App() {
                 onAudioClipsChange={updateAudioClips}
                 onThemeChange={handleThemeChange}
                 audioClips={audioClips}
+                loudnessCache={loudnessCache}
                 settings={globalSettings}
                 themeName={themeName}
               />

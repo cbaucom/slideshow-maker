@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { AudioClip } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
-import { moveAudioClip, removeAudioClip } from '../timeline-core'
 import type { LoudnessCache } from '../audio-analysis/types'
 import {
   buildTimelineLayout,
@@ -20,8 +19,6 @@ type Props = {
   currentFrame: number
   currentSlideId: string | null
   loudnessCache: LoudnessCache | undefined
-  onAudioClipGainChange: (clipIndex: number, gainDb: number | undefined) => void
-  onAudioClipsChange: (clips: AudioClip[]) => void
   onReorder: (fromIndex: number, toIndex: number) => void
   onSeek: (frame: number) => void
   onSlideClick: (id: string) => void
@@ -37,8 +34,6 @@ export function TimelinePanel({
   currentFrame,
   currentSlideId,
   loudnessCache,
-  onAudioClipGainChange,
-  onAudioClipsChange,
   onReorder,
   onSeek,
   onSlideClick,
@@ -49,7 +44,6 @@ export function TimelinePanel({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const mediaDragIndexRef = useRef<number | null>(null)
-  const audioDragIndexRef = useRef<number | null>(null)
   const { waveformCache } = useWaveformPeaks({ audioClips, audioTracks })
   const {
     pixelsPerFrame,
@@ -155,21 +149,17 @@ export function TimelinePanel({
           </div>
 
           {layout.audioBlocks.length > 0 ? (
-            <div className="relative mt-1 h-36 px-3">
-              <p className="mb-1 text-[10px] tracking-wide text-muted-foreground uppercase">Audio</p>
+            <div className="relative mt-1 h-24 px-3">
+              <p className="mb-1 text-[10px] tracking-wide text-muted-foreground uppercase">
+                Audio · reorder and gain in Soundtrack sidebar
+              </p>
               <div className="relative h-[calc(100%-1rem)]">
                 {layout.audioBlocks.map((segment, clipIndex) => (
                   <TimelineAudioClip
                     autoGainDb={loudnessCache?.[segment.filename]?.offsetDb}
                     clipIndex={clipIndex}
-                    dragIndexRef={audioDragIndexRef}
                     key={`${segment.filename}-${clipIndex}`}
                     manualGainDb={audioClips[clipIndex]?.gainDb}
-                    onGainChange={onAudioClipGainChange}
-                    onRemove={(index) => onAudioClipsChange(removeAudioClip(audioClips, index))}
-                    onReorder={(fromIndex, toIndex) => {
-                      onAudioClipsChange(moveAudioClip(audioClips, fromIndex, toIndex))
-                    }}
                     peaks={waveformCache[segment.filename]}
                     segment={segment}
                   />
