@@ -24,6 +24,7 @@ import { StoryboardFilmstrip } from './StoryboardFilmstrip'
 import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
+import { useBeatGrid } from './useBeatGrid'
 
 export function App() {
   const playerRef = useRef<PlayerRef>(null)
@@ -37,13 +38,16 @@ export function App() {
     aspectRatio,
     setAspectRatio,
     audioTracks,
+    beatGridCache,
     globalSettings,
     setGlobalSettings,
+    manualBeatGrid,
     slides,
     setSlides,
     soundtrackFilename,
     themeName,
     setThemeName,
+    updateBeatGridPersist,
     loading,
     error,
     corruptError,
@@ -51,6 +55,13 @@ export function App() {
     importNotice,
     recentProjects,
   } = project
+
+  const beatGrid = useBeatGrid({
+    audioTracks,
+    onPersistChange: updateBeatGridPersist,
+    persisted: { beatGridCache, manualBeatGrid },
+    soundtrackFilename,
+  })
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
     setSlides(prev => moveSlide(prev, fromIndex, toIndex))
@@ -106,8 +117,9 @@ export function App() {
             durationInFrames: selectedSoundtrack.durationInFrames,
           }
         : undefined,
+      beatGrid.effectiveBeatGrid,
     ),
-    [globalSettings, selectedSoundtrack, slides],
+    [beatGrid.effectiveBeatGrid, globalSettings, selectedSoundtrack, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)
@@ -195,18 +207,24 @@ export function App() {
             ) : null}
             sidebar={
               <EditorSidebar
+                analysisStatus={beatGrid.analysisStatus}
                 aspectRatio={aspectRatio}
-                onAspectRatioChange={setAspectRatio}
-                settings={globalSettings}
-                themeName={themeName}
-                onSettingsChange={handleSettingsChange}
-                onThemeChange={handleThemeChange}
                 audioTracks={audioTracks}
-                soundtrackFilename={soundtrackFilename}
-                onSoundtrackChange={project.changeSoundtrack}
+                effectiveBeatGrid={beatGrid.effectiveBeatGrid}
                 jamendoClientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
-                onJamendoAdd={project.addJamendoTrack}
+                manualBeatGrid={manualBeatGrid}
                 onAddTitleSlide={handleAddTitleSlide}
+                onApplyManualBpm={beatGrid.applyManualBpm}
+                onApplyTapTimestamps={beatGrid.applyTapTimestamps}
+                onAspectRatioChange={setAspectRatio}
+                onClearManualBeatGrid={beatGrid.clearManualBeatGrid}
+                onJamendoAdd={project.addJamendoTrack}
+                onSettingsChange={handleSettingsChange}
+                onSoundtrackChange={project.changeSoundtrack}
+                onThemeChange={handleThemeChange}
+                settings={globalSettings}
+                soundtrackFilename={soundtrackFilename}
+                themeName={themeName}
               />
             }
           />

@@ -3,7 +3,14 @@ import { DEFAULT_GLOBAL_SETTINGS } from '../timeline-core'
 import type { MediaSlide } from '../timeline-core/types'
 import { SCHEMA_VERSION } from '../project-store'
 import type { JamendoAttribution } from '../jamendo/types'
+import type { BeatGrid } from '../beat-grid/types'
 import { slidesToJson } from './slidePersistence'
+
+const BEAT_GRID: BeatGrid = {
+  beatIntervalSecs: 0.5,
+  bpm: 120,
+  firstBeatOffsetSecs: 0.1,
+}
 
 function makeSlide(filename: string): MediaSlide {
   return {
@@ -62,5 +69,21 @@ describe('slidesToJson', () => {
   it('omits aspectRatio when not provided', () => {
     const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], null, null, null)
     expect(json.aspectRatio).toBeUndefined()
+  })
+
+  it('includes beatGridCache when provided', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3', null, null, null, BEAT_GRID)
+    expect(json.beatGridCache).toEqual(BEAT_GRID)
+  })
+
+  it('includes manualBeatGrid when provided', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3', null, null, null, null, BEAT_GRID)
+    expect(json.manualBeatGrid).toEqual(BEAT_GRID)
+  })
+
+  it('omits beat grid fields when not provided', () => {
+    const json = slidesToJson(DEFAULT_GLOBAL_SETTINGS, [makeSlide('a.jpg')], 'track.mp3')
+    expect(json.beatGridCache).toBeUndefined()
+    expect(json.manualBeatGrid).toBeUndefined()
   })
 })
