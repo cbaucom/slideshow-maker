@@ -28,8 +28,14 @@ export type SerializedTitleSlide = {
 
 export type SerializedSlide = SerializedMediaSlide | SerializedTitleSlide
 
+export type SerializedAudioClip = {
+  filename: string
+  gainDb?: number
+}
+
 export type SlideshowJson = {
   aspectRatio?: AspectRatio
+  audioClips?: SerializedAudioClip[]
   globalSettings?: GlobalSettings
   schemaVersion: number
   slides: SerializedSlide[]

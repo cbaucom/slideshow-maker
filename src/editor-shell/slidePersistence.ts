@@ -1,5 +1,5 @@
 import type { BeatGrid } from '../beat-grid/types'
-import type { MediaSlide, Slide } from '../timeline-core/types'
+import type { AudioClip, MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import { SCHEMA_VERSION, type SlideshowJson } from '../project-store'
@@ -29,10 +29,23 @@ export function reconcileSlides(enumerated: MediaSlide[], saved: SlideshowJson):
   return ordered
 }
 
+export function audioClipsFromJson(saved: SlideshowJson): AudioClip[] {
+  if (saved.audioClips?.length) {
+    return saved.audioClips.map((clip) => ({
+      filename: clip.filename,
+      ...(clip.gainDb !== undefined ? { gainDb: clip.gainDb } : {}),
+    }))
+  }
+  if (saved.soundtrackFilename) {
+    return [{ filename: saved.soundtrackFilename }]
+  }
+  return []
+}
+
 export function slidesToJson(
   globalSettings: GlobalSettings,
   slides: Slide[],
-  soundtrackFilename?: string | null,
+  audioClips?: AudioClip[] | null,
   themeName?: ThemeName | null,
   soundtrackAttribution?: JamendoAttribution | null,
   aspectRatio?: AspectRatio | null,
@@ -43,9 +56,16 @@ export function slidesToJson(
     globalSettings,
     schemaVersion: SCHEMA_VERSION,
     ...(aspectRatio ? { aspectRatio } : {}),
+    ...(audioClips?.length
+      ? {
+          audioClips: audioClips.map((clip) => ({
+            filename: clip.filename,
+            ...(clip.gainDb !== undefined ? { gainDb: clip.gainDb } : {}),
+          })),
+        }
+      : {}),
     ...(beatGridCache ? { beatGridCache } : {}),
     ...(manualBeatGrid ? { manualBeatGrid } : {}),
-    ...(soundtrackFilename ? { soundtrackFilename } : {}),
     ...(themeName ? { themeName } : {}),
     ...(soundtrackAttribution ? { soundtrackAttribution } : {}),
     slides: slides.map(slide => {

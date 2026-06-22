@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
+import type { AudioClip } from '../timeline-core/types'
 import type { AudioTrack } from '../project-store'
 import type { BeatGrid } from '../beat-grid/types'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
@@ -25,13 +26,13 @@ type Props = {
   onApplyManualBpm: (bpm: number, firstBeatOffsetSecs: number) => void
   onApplyTapTimestamps: (tapTimestampsMs: number[]) => void
   onAspectRatioChange: (ratio: AspectRatio) => void
+  onAudioClipsChange: (clips: AudioClip[]) => void
   onClearManualBeatGrid: () => void
   onJamendoAdd: (track: JamendoTrack, attribution: JamendoAttribution) => Promise<void>
   onSettingsChange: (updated: GlobalSettings) => void
-  onSoundtrackChange: (filename: string | null) => void
   onThemeChange: (name: ThemeName) => void
+  audioClips: AudioClip[]
   settings: GlobalSettings
-  soundtrackFilename: string | null
   themeName: ThemeName | null
 }
 
@@ -46,13 +47,13 @@ export function EditorSidebar({
   onApplyManualBpm,
   onApplyTapTimestamps,
   onAspectRatioChange,
+  onAudioClipsChange,
   onClearManualBeatGrid,
   onJamendoAdd,
   onSettingsChange,
-  onSoundtrackChange,
   onThemeChange,
+  audioClips,
   settings,
-  soundtrackFilename,
   themeName,
 }: Props) {
   return (
@@ -85,15 +86,15 @@ export function EditorSidebar({
               <AccordionContent>
                 <SoundtrackPanel
                   analysisStatus={analysisStatus}
+                  audioClips={audioClips}
                   audioTracks={audioTracks}
                   beatSync={settings.beatSync !== false}
                   effectiveBeatGrid={effectiveBeatGrid}
                   manualBeatGrid={manualBeatGrid}
                   onApplyManualBpm={onApplyManualBpm}
                   onApplyTapTimestamps={onApplyTapTimestamps}
-                  onChange={onSoundtrackChange}
+                  onChange={onAudioClipsChange}
                   onClearManualBeatGrid={onClearManualBeatGrid}
-                  soundtrackFilename={soundtrackFilename}
                 />
               </AccordionContent>
             </AccordionItem>

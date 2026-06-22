@@ -1,6 +1,10 @@
 import { interpolate } from 'remotion'
 import type { DuckingEnvelope } from '../sequence-planner/types'
 
+export function dbToLinear(gainDb: number): number {
+  return Math.pow(10, gainDb / 20)
+}
+
 export function volumeAtFrame(envelope: DuckingEnvelope, frame: number): number {
   const { keyframes, rampFrames } = envelope
   if (keyframes.length === 0) return 1

@@ -21,7 +21,7 @@ function makeSlide(
 }
 
 const SETTINGS = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut' as const }
-const SOUNDTRACK = { blobUrl: 'blob:audio', durationInFrames: 900 }
+const AUDIO_CLIP = [{ blobUrl: 'blob:audio', durationInFrames: 900 }]
 
 describe('plan — soundtrack ducking envelope', () => {
   it('ducks music during a video slide between photos', () => {
@@ -29,8 +29,8 @@ describe('plan — soundtrack ducking envelope', () => {
     const video = makeSlide('v', 'video', 120)
     const photo2 = makeSlide('b', 'image', 90)
 
-    const result = plan([photo, video, photo2], SETTINGS, undefined, SOUNDTRACK)
-    const envelope = result.soundtrack?.duckingEnvelope
+    const result = plan([photo, video, photo2], SETTINGS, undefined, AUDIO_CLIP)
+    const envelope = result.duckingEnvelope
 
     expect(envelope).toBeDefined()
     expect(envelope!.rampFrames).toBe(DUCK_RAMP_FRAMES)
@@ -50,19 +50,19 @@ describe('plan — soundtrack ducking envelope', () => {
   it('does not duck when video audio is muted', () => {
     const video = makeSlide('v', 'video', 120, { muteVideoAudio: true })
 
-    const result = plan([video], SETTINGS, undefined, SOUNDTRACK)
+    const result = plan([video], SETTINGS, undefined, AUDIO_CLIP)
 
-    expect(result.soundtrack?.duckingEnvelope.segments).toEqual([])
+    expect(result.duckingEnvelope?.segments).toEqual([])
     expect(result.entries[0].videoVolume).toBe(0)
   })
 
   it('mutes soundtrack when muteMusic is set', () => {
     const video = makeSlide('v', 'video', 120, { muteMusic: true })
 
-    const result = plan([video], SETTINGS, undefined, SOUNDTRACK)
-    const { keyframes } = result.soundtrack!.duckingEnvelope
+    const result = plan([video], SETTINGS, undefined, AUDIO_CLIP)
+    const { keyframes } = result.duckingEnvelope!
 
-    expect(result.soundtrack?.duckingEnvelope.segments).toEqual([])
+    expect(result.duckingEnvelope?.segments).toEqual([])
     expect(keyframes).toContainEqual({ frame: 0, volume: 0 })
     expect(keyframes).toContainEqual({ frame: 120, volume: 1 })
   })
@@ -70,11 +70,11 @@ describe('plan — soundtrack ducking envelope', () => {
   it('uses custom musicVolume instead of default duck level', () => {
     const video = makeSlide('v', 'video', 120, { musicVolume: 0.5 })
 
-    const result = plan([video], SETTINGS, undefined, SOUNDTRACK)
+    const result = plan([video], SETTINGS, undefined, AUDIO_CLIP)
 
-    expect(result.soundtrack?.duckingEnvelope.segments).toEqual([])
-    expect(result.soundtrack?.duckingEnvelope.keyframes).toContainEqual({ frame: 0, volume: 0.5 })
-    expect(result.soundtrack?.duckingEnvelope.keyframes).toContainEqual({ frame: 120, volume: 1 })
+    expect(result.duckingEnvelope?.segments).toEqual([])
+    expect(result.duckingEnvelope?.keyframes).toContainEqual({ frame: 0, volume: 0.5 })
+    expect(result.duckingEnvelope?.keyframes).toContainEqual({ frame: 120, volume: 1 })
   })
 })
 
@@ -92,8 +92,8 @@ describe('plan — ducking envelope property', () => {
     ]
 
     for (const slides of cases) {
-      const result = plan(slides, SETTINGS, undefined, SOUNDTRACK)
-      const envelope = result.soundtrack!.duckingEnvelope
+      const result = plan(slides, SETTINGS, undefined, AUDIO_CLIP)
+      const envelope = result.duckingEnvelope!
       const expectedSpans = getUnmutedVideoAudioSpans(result.entries).filter((span) => {
         const entry = result.entries.find((candidate) => candidate.startFrame === span.startFrame)
         return entry?.slide.overrides?.musicVolume === undefined

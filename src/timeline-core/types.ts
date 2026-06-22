@@ -31,6 +31,11 @@ export type TitleSlide = {
 
 export type Slide = MediaSlide | TitleSlide
 
+export type AudioClip = {
+  filename: string
+  gainDb?: number
+}
+
 export function isTitleSlide(s: Slide): s is TitleSlide {
   return 'kind' in s && (s as TitleSlide).kind === 'title'
 }

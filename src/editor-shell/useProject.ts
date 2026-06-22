@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Slide } from '../timeline-core/types'
+import type { AudioClip, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
-import { DEFAULT_ASPECT_RATIO, DEFAULT_GLOBAL_SETTINGS, isAspectRatio } from '../timeline-core'
+import { addAudioClip, DEFAULT_ASPECT_RATIO, DEFAULT_GLOBAL_SETTINGS, isAspectRatio } from '../timeline-core'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
 import {
   addRecentProject,
@@ -19,7 +19,7 @@ import {
   type SlideshowJson,
 } from '../project-store'
 import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loader'
-import { reconcileSlides, slidesToJson } from './slidePersistence'
+import { audioClipsFromJson, reconcileSlides, slidesToJson } from './slidePersistence'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { downloadTrack, sanitizeFilename } from '../jamendo'
 import type { BeatGrid } from '../beat-grid'
@@ -35,16 +35,21 @@ async function listFolderFilenames(handle: FileSystemDirectoryHandle): Promise<S
   return names
 }
 
+function filterValidAudioClips(clips: AudioClip[], audioTracks: AudioTrack[]): AudioClip[] {
+  const filenames = new Set(audioTracks.map((track) => track.filename))
+  return clips.filter((clip) => filenames.has(clip.filename))
+}
+
 type Options = {
   onFolderLoaded?: () => void
 }
 
 export function useProject({ onFolderLoaded }: Options = {}) {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(DEFAULT_ASPECT_RATIO)
+  const [audioClips, setAudioClips] = useState<AudioClip[]>([])
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([])
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(DEFAULT_GLOBAL_SETTINGS)
   const [slides, setSlides] = useState<Slide[]>([])
-  const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
   const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
   const [themeName, setThemeName] = useState<ThemeName | null>(null)
   const [beatGridCache, setBeatGridCache] = useState<BeatGrid | undefined>()
@@ -97,7 +102,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
       saveProject(handle, slidesToJson(
         globalSettings,
         slides,
-        soundtrackFilename,
+        audioClips,
         themeName,
         soundtrackAttribution,
         aspectRatio,
@@ -105,7 +110,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         manualBeatGrid,
       )).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [aspectRatio, beatGridCache, globalSettings, manualBeatGrid, slides, soundtrackAttribution, soundtrackFilename, themeName])
+  }, [aspectRatio, audioClips, beatGridCache, globalSettings, manualBeatGrid, slides, soundtrackAttribution, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -116,12 +121,13 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         const nextAudioTracks = await enumerateAudioTracks(handle)
         const restoredSettings = savedData?.globalSettings ?? DEFAULT_GLOBAL_SETTINGS
         const restoredThemeName = savedData?.themeName ?? null
-        const savedSoundtrack = savedData?.soundtrackFilename ?? null
-        const validSoundtrack =
-          savedSoundtrack && nextAudioTracks.some((track) => track.filename === savedSoundtrack)
-            ? savedSoundtrack
-            : null
-        const restoredAttribution = validSoundtrack ? (savedData?.soundtrackAttribution ?? null) : null
+        const restoredClips = filterValidAudioClips(
+          savedData ? audioClipsFromJson(savedData) : [],
+          nextAudioTracks,
+        )
+        const restoredAttribution = restoredClips.length > 0
+          ? (savedData?.soundtrackAttribution ?? null)
+          : null
         let finalSlides: Slide[] = savedData ? reconcileSlides(enumerated, savedData) : enumerated
         // Apply global duration only to media slides not already in savedData (new files added to folder).
         const savedFilenames = new Set(
@@ -136,14 +142,14 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         pendingAudioRevokeRef.current = audioTracks
         pendingRevokeRef.current = latestSlidesRef.current
         setAspectRatio(isAspectRatio(savedData?.aspectRatio) ? savedData.aspectRatio : DEFAULT_ASPECT_RATIO)
+        setAudioClips(restoredClips)
         setAudioTracks(nextAudioTracks)
         setGlobalSettings(restoredSettings)
         setThemeName(restoredThemeName)
         setSlides(finalSlides)
-        setSoundtrackFilename(validSoundtrack)
         setSoundtrackAttribution(restoredAttribution)
-        setBeatGridCache(validSoundtrack ? savedData?.beatGridCache : undefined)
-        setManualBeatGrid(validSoundtrack ? savedData?.manualBeatGrid : undefined)
+        setBeatGridCache(restoredClips.length > 0 ? savedData?.beatGridCache : undefined)
+        setManualBeatGrid(restoredClips.length > 0 ? savedData?.manualBeatGrid : undefined)
         setProjectName(handle.name)
         setFolderOpen(true)
         onFolderLoaded?.()
@@ -217,7 +223,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
       const nextAudioTracks = await enumerateAudioTracks(handle)
       pendingAudioRevokeRef.current = latestAudioTracksRef.current
       setAudioTracks(nextAudioTracks)
-      setSoundtrackFilename(filename)
+      setAudioClips((previous) => addAudioClip(previous, filename))
       setSoundtrackAttribution(attribution)
       setBeatGridCache(undefined)
       setManualBeatGrid(undefined)
@@ -234,12 +240,17 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     return filename
   }, [])
 
-  const changeSoundtrack = useCallback((filename: string | null) => {
-    setSoundtrackFilename(filename)
-    setSoundtrackAttribution(null)
-    setBeatGridCache(undefined)
-    setManualBeatGrid(undefined)
-  }, [])
+  const updateAudioClips = useCallback((clips: AudioClip[]) => {
+    const primaryChanged = audioClips[0]?.filename !== clips[0]?.filename
+    if (primaryChanged || clips.length === 0) {
+      setBeatGridCache(undefined)
+      setManualBeatGrid(undefined)
+    }
+    if (clips.length === 0) {
+      setSoundtrackAttribution(null)
+    }
+    setAudioClips(clips)
+  }, [audioClips])
 
   const updateBeatGridPersist = useCallback((update: {
     beatGridCache?: BeatGrid
@@ -291,6 +302,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   return {
     aspectRatio,
     setAspectRatio,
+    audioClips,
     audioTracks,
     beatGridCache,
     globalSettings,
@@ -298,9 +310,10 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     manualBeatGrid,
     slides,
     setSlides,
-    soundtrackFilename,
+    soundtrackAttribution,
     themeName,
     setThemeName,
+    updateAudioClips,
     updateBeatGridPersist,
     loading,
     error,
@@ -315,7 +328,6 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     refresh,
     openRecent,
     addJamendoTrack,
-    changeSoundtrack,
     dismissCorruptError,
     saveExportedVideo,
   }
