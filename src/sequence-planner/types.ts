@@ -48,7 +48,16 @@ export type SoundtrackTrack = {
   durationInFrames: number
 }
 
+export type AudioSegment = {
+  blobUrl: string
+  durationInFrames: number
+  gainDb: number
+  startFrame: number
+}
+
 export type RenderPlan = {
+  audioSegments?: AudioSegment[]
+  duckingEnvelope?: DuckingEnvelope
   entries: RenderPlanEntry[]
   soundtrack?: SoundtrackTrack
   totalFrames: number

@@ -37,6 +37,7 @@ export function App() {
   const {
     aspectRatio,
     setAspectRatio,
+    audioClips,
     audioTracks,
     beatGridCache,
     globalSettings,
@@ -44,9 +45,9 @@ export function App() {
     manualBeatGrid,
     slides,
     setSlides,
-    soundtrackFilename,
     themeName,
     setThemeName,
+    updateAudioClips,
     updateBeatGridPersist,
     loading,
     error,
@@ -56,11 +57,13 @@ export function App() {
     recentProjects,
   } = project
 
+  const primaryClipFilename = audioClips[0]?.filename ?? null
+
   const beatGrid = useBeatGrid({
     audioTracks,
     onPersistChange: updateBeatGridPersist,
     persisted: { beatGridCache, manualBeatGrid },
-    soundtrackFilename,
+    primaryClipFilename,
   })
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
@@ -99,11 +102,17 @@ export function App() {
     setSlides(prev => prev.map(s => (s.id === id && isTitleSlide(s) ? { ...s, ...updates } : s)))
   }, [setSlides])
 
-  const selectedSoundtrack = useMemo(
-    () => (soundtrackFilename
-      ? audioTracks.find((track) => track.filename === soundtrackFilename)
-      : undefined),
-    [audioTracks, soundtrackFilename],
+  const planAudioClips = useMemo(
+    () => audioClips.map((clip) => {
+      const track = audioTracks.find((entry) => entry.filename === clip.filename)
+      if (!track) return null
+      return {
+        blobUrl: track.blobUrl,
+        durationInFrames: track.durationInFrames,
+        ...(clip.gainDb !== undefined ? { gainDb: clip.gainDb } : {}),
+      }
+    }).filter((clip) => clip !== null),
+    [audioClips, audioTracks],
   )
 
   const renderPlan = useMemo(
@@ -111,15 +120,10 @@ export function App() {
       filterIncluded(slides),
       globalSettings,
       undefined,
-      selectedSoundtrack
-        ? {
-            blobUrl: selectedSoundtrack.blobUrl,
-            durationInFrames: selectedSoundtrack.durationInFrames,
-          }
-        : undefined,
+      planAudioClips.length > 0 ? planAudioClips : undefined,
       beatGrid.effectiveBeatGrid,
     ),
-    [beatGrid.effectiveBeatGrid, globalSettings, selectedSoundtrack, slides],
+    [beatGrid.effectiveBeatGrid, globalSettings, planAudioClips, slides],
   )
   const totalFrames = renderPlan.totalFrames > 0 ? renderPlan.totalFrames : FPS
   const canvas = dimensionsForAspectRatio(aspectRatio)
@@ -220,10 +224,10 @@ export function App() {
                 onClearManualBeatGrid={beatGrid.clearManualBeatGrid}
                 onJamendoAdd={project.addJamendoTrack}
                 onSettingsChange={handleSettingsChange}
-                onSoundtrackChange={project.changeSoundtrack}
+                onAudioClipsChange={updateAudioClips}
                 onThemeChange={handleThemeChange}
                 settings={globalSettings}
-                soundtrackFilename={soundtrackFilename}
+                audioClips={audioClips}
                 themeName={themeName}
               />
             }

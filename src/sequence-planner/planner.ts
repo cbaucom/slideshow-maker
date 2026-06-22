@@ -6,15 +6,19 @@ import type { BeatGrid } from '../beat-grid/types'
 import { nudge } from '../beat-grid/nudge'
 import { buildDuckingEnvelope, resolveVideoVolume } from './ducking'
 import type {
+  AudioSegment,
   KenBurnsVector,
   MediaMetadata,
   RenderPlan,
   RenderPlanEntry,
-  SoundtrackTrack,
   TransitionSpec,
 } from './types'
 
-export type SoundtrackInput = Pick<SoundtrackTrack, 'blobUrl' | 'durationInFrames'>
+export type AudioClipInput = {
+  blobUrl: string
+  durationInFrames: number
+  gainDb?: number
+}
 
 export { DUCK_LEVEL, DUCK_RAMP_FRAMES, FULL_VOLUME, getUnmutedVideoAudioSpans } from './ducking'
 
@@ -37,22 +41,40 @@ const KB_PRESETS: KenBurnsVector[] = [
 
 const KB_ZOOM_IN_PRESETS: KenBurnsVector[] = [KB_PRESETS[0], KB_PRESETS[2]]
 
+function buildAudioOutput(
+  entries: RenderPlanEntry[],
+  audioClips?: AudioClipInput[],
+): Pick<RenderPlan, 'audioSegments' | 'duckingEnvelope'> {
+  if (!audioClips?.length) return {}
+
+  const duckingEnvelope = buildDuckingEnvelope(entries)
+  const audioSegments: AudioSegment[] = []
+  let startFrame = 0
+
+  for (const clip of audioClips) {
+    audioSegments.push({
+      blobUrl: clip.blobUrl,
+      durationInFrames: clip.durationInFrames,
+      gainDb: clip.gainDb ?? 0,
+      startFrame,
+    })
+    startFrame += clip.durationInFrames
+  }
+
+  return { audioSegments, duckingEnvelope }
+}
+
 export function plan(
   slides: Slide[],
   settings: GlobalSettings,
   mediaMetadata?: Map<string, MediaMetadata>,
-  soundtrack?: SoundtrackInput,
+  audioClips?: AudioClipInput[],
   beatGrid?: BeatGrid,
 ): RenderPlan {
   if (slides.length === 0) {
     return {
       entries: [],
-      soundtrack: soundtrack
-        ? {
-            ...soundtrack,
-            duckingEnvelope: buildDuckingEnvelope([]),
-          }
-        : undefined,
+      ...buildAudioOutput([], audioClips),
       totalFrames: 0,
     }
   }
@@ -146,12 +168,7 @@ export function plan(
 
   return {
     entries,
-    soundtrack: soundtrack
-      ? {
-          ...soundtrack,
-          duckingEnvelope: buildDuckingEnvelope(entries),
-        }
-      : undefined,
+    ...buildAudioOutput(entries, audioClips),
     totalFrames: cursor,
   }
 }

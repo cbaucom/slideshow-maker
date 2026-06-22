@@ -1,15 +1,15 @@
 import React, { useCallback } from 'react'
-import { AbsoluteFill, Img, interpolate, useCurrentFrame } from 'remotion'
+import { AbsoluteFill, Img, interpolate, Sequence, useCurrentFrame } from 'remotion'
 import { Audio, Video } from '@remotion/media'
 import { TransitionSeries, linearTiming } from '@remotion/transitions'
 import { fade } from '@remotion/transitions/fade'
 import type { TransitionPresentation, TransitionPresentationComponentProps } from '@remotion/transitions'
 import { loadFont } from '@remotion/google-fonts/Inter'
-import type { RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
+import type { AudioSegment, RenderPlanEntry, RenderPlan } from '../sequence-planner/types'
 import type { TransitionType } from '../timeline-core/settings'
 import { isTitleSlide } from '../timeline-core/types'
 import type { MediaSlide, TitleSlide } from '../timeline-core/types'
-import { volumeAtFrame } from './soundtrackVolume'
+import { dbToLinear, volumeAtFrame } from './soundtrackVolume'
 
 type MediaRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: MediaSlide }
 type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide }
@@ -62,8 +62,8 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
 
   return (
     <AbsoluteFill>
-      {plan.soundtrack ? (
-        <SoundtrackAudio track={plan.soundtrack} />
+      {plan.audioSegments && plan.duckingEnvelope ? (
+        <AudioSegments duckingEnvelope={plan.duckingEnvelope} segments={plan.audioSegments} />
       ) : null}
       <TransitionSeries>
       {plan.entries.map((entry) => (
@@ -89,13 +89,39 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
 }
 
 // @remotion/media's Audio (not Html5Audio) — required for renderMediaOnWeb export.
-function SoundtrackAudio({ track }: { track: NonNullable<RenderPlan['soundtrack']> }) {
-  const { duckingEnvelope } = track
+function AudioSegments({
+  duckingEnvelope,
+  segments,
+}: {
+  duckingEnvelope: NonNullable<RenderPlan['duckingEnvelope']>
+  segments: AudioSegment[]
+}) {
+  return segments.map((segment, index) => (
+    <Sequence
+      durationInFrames={segment.durationInFrames}
+      from={segment.startFrame}
+      key={`${segment.startFrame}-${segment.blobUrl}-${index}`}
+      layout="none"
+    >
+      <AudioSegmentAudio duckingEnvelope={duckingEnvelope} segment={segment} />
+    </Sequence>
+  ))
+}
+
+function AudioSegmentAudio({
+  duckingEnvelope,
+  segment,
+}: {
+  duckingEnvelope: NonNullable<RenderPlan['duckingEnvelope']>
+  segment: AudioSegment
+}) {
+  const gainLinear = dbToLinear(segment.gainDb)
   const volume = useCallback(
-    (frame: number) => volumeAtFrame(duckingEnvelope, frame),
-    [duckingEnvelope],
+    (localFrame: number) =>
+      volumeAtFrame(duckingEnvelope, segment.startFrame + localFrame) * gainLinear,
+    [duckingEnvelope, gainLinear, segment.startFrame],
   )
-  return <Audio src={track.blobUrl} volume={volume} />
+  return <Audio src={segment.blobUrl} volume={volume} />
 }
 
 function TitleSlideView({ entry }: { entry: TitleRenderPlanEntry }) {

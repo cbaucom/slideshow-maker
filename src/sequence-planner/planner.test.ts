@@ -377,32 +377,58 @@ describe('plan — title slides', () => {
   })
 })
 
-describe('plan — soundtrack', () => {
-  const SOUNDTRACK = { blobUrl: 'blob:audio', durationInFrames: 300 }
+describe('plan — audio clips', () => {
+  const CLIP_A = { blobUrl: 'blob:audio-a', durationInFrames: 120 }
+  const CLIP_B = { blobUrl: 'blob:audio-b', durationInFrames: 90 }
+  const DUCKING = {
+    keyframes: [{ frame: 0, volume: 1 }],
+    rampFrames: 6,
+    segments: [],
+  }
 
-  it('includes soundtrack on RenderPlan when provided', () => {
-    const result = plan([IMG_90], CROSSFADE, undefined, SOUNDTRACK)
-    expect(result.soundtrack).toEqual({
-      ...SOUNDTRACK,
-      duckingEnvelope: {
-        keyframes: [{ frame: 0, volume: 1 }],
-        rampFrames: 6,
-        segments: [],
+  it('includes sequential audio segments on RenderPlan when provided', () => {
+    const result = plan([IMG_90], CROSSFADE, undefined, [CLIP_A])
+    expect(result.audioSegments).toEqual([
+      {
+        blobUrl: CLIP_A.blobUrl,
+        durationInFrames: CLIP_A.durationInFrames,
+        gainDb: 0,
+        startFrame: 0,
       },
-    })
+    ])
+    expect(result.duckingEnvelope).toEqual(DUCKING)
     expect(result.totalFrames).toBe(90)
   })
 
-  it('omits soundtrack when not provided', () => {
+  it('omits audio segments when not provided', () => {
     const result = plan([IMG_90], CROSSFADE)
-    expect(result.soundtrack).toBeUndefined()
+    expect(result.audioSegments).toBeUndefined()
+    expect(result.duckingEnvelope).toBeUndefined()
   })
 
-  it('keeps slideshow totalFrames independent of soundtrack duration', () => {
-    const shortTrack = { blobUrl: 'blob:short', durationInFrames: 60 }
-    const result = plan([IMG_90, IMG_90B], CROSSFADE, undefined, shortTrack)
+  it('places clip 2 immediately after clip 1 with no gap', () => {
+    const result = plan([IMG_90], CROSSFADE, undefined, [CLIP_A, CLIP_B])
+    expect(result.audioSegments).toEqual([
+      {
+        blobUrl: CLIP_A.blobUrl,
+        durationInFrames: 120,
+        gainDb: 0,
+        startFrame: 0,
+      },
+      {
+        blobUrl: CLIP_B.blobUrl,
+        durationInFrames: 90,
+        gainDb: 0,
+        startFrame: 120,
+      },
+    ])
+  })
+
+  it('keeps slideshow totalFrames independent of audio duration', () => {
+    const shortClip = { blobUrl: 'blob:short', durationInFrames: 60 }
+    const result = plan([IMG_90, IMG_90B], CROSSFADE, undefined, [shortClip])
     expect(result.totalFrames).toBe(165)
-    expect(result.soundtrack?.durationInFrames).toBe(60)
+    expect(result.audioSegments?.[0].durationInFrames).toBe(60)
   })
 })
 

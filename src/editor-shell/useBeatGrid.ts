@@ -20,19 +20,19 @@ type Options = {
   audioTracks: AudioTrack[]
   onPersistChange: (update: PersistedBeatGrid) => void
   persisted: PersistedBeatGrid
-  soundtrackFilename: string | null
+  primaryClipFilename: string | null
 }
 
 export function useBeatGrid({
   audioTracks,
   onPersistChange,
   persisted,
-  soundtrackFilename,
+  primaryClipFilename,
 }: Options) {
   const [analysisFailedForFilename, setAnalysisFailedForFilename] = useState<string | null>(null)
 
-  const soundtrack = soundtrackFilename
-    ? audioTracks.find((track) => track.filename === soundtrackFilename)
+  const soundtrack = primaryClipFilename
+    ? audioTracks.find((track) => track.filename === primaryClipFilename)
     : undefined
 
   const effectiveBeatGrid = resolveEffectiveBeatGrid(
