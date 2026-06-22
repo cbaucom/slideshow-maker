@@ -13,8 +13,12 @@ export type MediaSlide = {
   durationInFrames: number
   /** excluded from timeline but still in folder */
   excluded: boolean
+  /** intrinsic pixel height when known */
+  height?: number
   /** per-slide setting overrides; absent means "use global defaults" */
   overrides?: SlideOverrides
+  /** intrinsic pixel width when known */
+  width?: number
 }
 
 export type TitleSlide = {

@@ -16,3 +16,5 @@ export type {
 } from './settings'
 export type { AudioClip, MediaSlide, TitleSlide, Slide, MediaType } from './types'
 export { isTitleSlide } from './types'
+export { resolveSmartFit } from './smartFit'
+export type { ConcreteFitMode } from './smartFit'

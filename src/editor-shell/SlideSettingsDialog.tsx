@@ -137,6 +137,7 @@ export function SlideSettingsDialog({ globalSettings, onClose, onOverride, slide
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="smart-fit">Smart fit</SelectItem>
                   <SelectItem value="cover">Cover (crop)</SelectItem>
                   <SelectItem value="contain">Letterbox</SelectItem>
                   <SelectItem value="blur-fill">Blur fill</SelectItem>

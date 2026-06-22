@@ -25,6 +25,31 @@ async function getVideoDurationFrames(file: File): Promise<number> {
   }
 }
 
+async function getImageDimensions(file: File): Promise<{ height: number; width: number } | undefined> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const dimensions = { height: bitmap.height, width: bitmap.width }
+    bitmap.close()
+    return dimensions
+  } catch {
+    return undefined
+  }
+}
+
+async function getVideoDimensions(file: File): Promise<{ height: number; width: number } | undefined> {
+  try {
+    const input = new Input({
+      formats: ALL_FORMATS,
+      source: new BlobSource(file),
+    })
+    const videoTrack = await input.getPrimaryVideoTrack()
+    if (!videoTrack) return undefined
+    return { height: videoTrack.displayHeight, width: videoTrack.displayWidth }
+  } catch {
+    return undefined
+  }
+}
+
 export async function createMediaSlideFromFile(file: File): Promise<MediaSlide> {
   const filename = file.name
   const type = getMediaType(filename)
@@ -33,12 +58,16 @@ export async function createMediaSlideFromFile(file: File): Promise<MediaSlide> 
     type === 'video'
       ? await getVideoDurationFrames(file)
       : IMAGE_DURATION_FRAMES
+  const dimensions = type === 'video'
+    ? await getVideoDimensions(file)
+    : await getImageDimensions(file)
 
   return {
     blobUrl,
     durationInFrames,
     excluded: false,
     filename,
+    ...(dimensions ? { height: dimensions.height, width: dimensions.width } : {}),
     id: `${filename}-${file.lastModified}`,
     type,
   }
