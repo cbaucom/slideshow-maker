@@ -126,11 +126,10 @@ export function plan(
     if (isTitleSlide(slide)) return slide.durationInFrames
     const meta = mediaMetadata?.get(slide.filename)?.durationInFrames
     if (meta !== undefined) return meta
-    let raw = slide.durationInFrames
-    if (slide.type === 'image' && slide.overrides?.imageDurationSecs !== undefined) {
-      raw = Math.round(resolved(slide).imageDurationSecs * FPS)
+    if (slide.type === 'image') {
+      return Math.round(resolved(slide).imageDurationSecs * FPS)
     }
-    return raw
+    return slide.durationInFrames
   }
 
   function getDuration(slide: Slide, startFrame: number): number {

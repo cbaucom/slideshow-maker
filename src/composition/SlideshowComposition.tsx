@@ -12,6 +12,8 @@ type TitleRenderPlanEntry = Omit<RenderPlanEntry, 'slide'> & { slide: TitleSlide
 
 const { fontFamily } = loadFont('normal', { weights: ['400', '700'], subsets: ['latin'] })
 
+const LARGE_TIMELINE_ENTRY_COUNT = 60
+
 export type SlideshowProps = {
   plan: RenderPlan
 }
@@ -72,60 +74,19 @@ function SlideEntryView({ entry }: { entry: RenderPlanEntry }) {
   )
 }
 
-function findActiveEntries(entries: RenderPlanEntry[], frame: number): RenderPlanEntry[] {
-  const active: RenderPlanEntry[] = []
-  for (const entry of entries) {
-    const endFrame = entry.startFrame + entry.durationInFrames
-    if (frame >= entry.startFrame && frame < endFrame) {
-      active.push(entry)
-    }
-  }
-  return active
-}
-
-function planUsesTimedTransitions(entries: RenderPlanEntry[]): boolean {
-  return entries.some(
-    (entry) => entry.transitionIn !== undefined && entry.transitionIn.durationInFrames > 0,
-  )
-}
-
-function SlideEntryView({ entry }: { entry: RenderPlanEntry }) {
-  return isTitleSlide(entry.slide)
-    ? <TitleSlideView entry={entry as TitleRenderPlanEntry} />
-    : <MediaSlideView entry={entry as MediaRenderPlanEntry} />
-}
-
 function AbsoluteTimeline({ entries }: { entries: RenderPlanEntry[] }) {
+  const premountFor = entries.length > LARGE_TIMELINE_ENTRY_COUNT ? 0 : 30
+
   return entries.map((entry) => (
     <Sequence
       durationInFrames={entry.durationInFrames}
       from={entry.startFrame}
       key={`${entry.startFrame}-${entry.slide.id}`}
-      premountFor={30}
+      premountFor={premountFor}
     >
       <SlideEntryView entry={entry} />
     </Sequence>
   ))
-}
-
-function TransitionSeriesTimeline({ entries }: { entries: RenderPlanEntry[] }) {
-  return (
-    <TransitionSeries>
-      {entries.map((entry) => (
-        <React.Fragment key={`${entry.startFrame}-${entry.slide.id}`}>
-          {entry.transitionIn && entry.transitionIn.durationInFrames > 0 ? (
-            <TransitionSeries.Transition
-              presentation={getPresentation(entry.transitionIn.type)}
-              timing={linearTiming({ durationInFrames: entry.transitionIn.durationInFrames })}
-            />
-          ) : null}
-          <TransitionSeries.Sequence durationInFrames={entry.durationInFrames} premountFor={30}>
-            <SlideEntryView entry={entry} />
-          </TransitionSeries.Sequence>
-        </React.Fragment>
-      ))}
-    </TransitionSeries>
-  )
 }
 
 export function SlideshowComposition({ plan }: SlideshowProps) {
@@ -142,11 +103,7 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
       {plan.audioSegments && plan.duckingEnvelope ? (
         <AudioSegments duckingEnvelope={plan.duckingEnvelope} segments={plan.audioSegments} />
       ) : null}
-      {planUsesTimedTransitions(plan.entries) ? (
-        <TransitionSeriesTimeline entries={plan.entries} />
-      ) : (
-        <AbsoluteTimeline entries={plan.entries} />
-      )}
+      <AbsoluteTimeline entries={plan.entries} />
     </AbsoluteFill>
   )
 }
