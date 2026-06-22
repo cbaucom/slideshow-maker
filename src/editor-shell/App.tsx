@@ -25,6 +25,8 @@ import { SlideSettingsDialog } from './SlideSettingsDialog'
 import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
 import { useBeatGrid } from './useBeatGrid'
+import { useLoudness } from './useLoudness'
+import { resolveEffectiveGainDb } from '../audio-analysis'
 
 export function App() {
   const playerRef = useRef<PlayerRef>(null)
@@ -43,12 +45,14 @@ export function App() {
     globalSettings,
     setGlobalSettings,
     manualBeatGrid,
+    loudnessCache,
     slides,
     setSlides,
     themeName,
     setThemeName,
     updateAudioClips,
     updateBeatGridPersist,
+    updateLoudnessCache,
     loading,
     error,
     corruptError,
@@ -64,6 +68,12 @@ export function App() {
     onPersistChange: updateBeatGridPersist,
     persisted: { beatGridCache, manualBeatGrid },
     primaryClipFilename,
+  })
+
+  useLoudness({
+    audioTracks,
+    loudnessCache,
+    onPersistChange: updateLoudnessCache,
   })
 
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
@@ -106,13 +116,14 @@ export function App() {
     () => audioClips.map((clip) => {
       const track = audioTracks.find((entry) => entry.filename === clip.filename)
       if (!track) return null
+      const gainDb = resolveEffectiveGainDb(clip.gainDb, loudnessCache?.[clip.filename])
       return {
         blobUrl: track.blobUrl,
         durationInFrames: track.durationInFrames,
-        ...(clip.gainDb !== undefined ? { gainDb: clip.gainDb } : {}),
+        gainDb,
       }
     }).filter((clip) => clip !== null),
-    [audioClips, audioTracks],
+    [audioClips, audioTracks, loudnessCache],
   )
 
   const renderPlan = useMemo(
@@ -226,8 +237,9 @@ export function App() {
                 onSettingsChange={handleSettingsChange}
                 onAudioClipsChange={updateAudioClips}
                 onThemeChange={handleThemeChange}
-                settings={globalSettings}
                 audioClips={audioClips}
+                loudnessCache={loudnessCache}
+                settings={globalSettings}
                 themeName={themeName}
               />
             }

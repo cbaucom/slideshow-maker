@@ -23,6 +23,7 @@ import { audioClipsFromJson, reconcileSlides, slidesToJson } from './slidePersis
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { downloadTrack, sanitizeFilename } from '../jamendo'
 import type { BeatGrid } from '../beat-grid'
+import type { LoudnessCache } from '../audio-analysis/types'
 import { FPS } from './PlayerPane'
 
 const AUTOSAVE_DELAY = 2000
@@ -53,6 +54,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
   const [themeName, setThemeName] = useState<ThemeName | null>(null)
   const [beatGridCache, setBeatGridCache] = useState<BeatGrid | undefined>()
+  const [loudnessCache, setLoudnessCache] = useState<LoudnessCache | undefined>()
   const [manualBeatGrid, setManualBeatGrid] = useState<BeatGrid | undefined>()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -108,9 +110,10 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         aspectRatio,
         beatGridCache,
         manualBeatGrid,
+        loudnessCache,
       )).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [aspectRatio, audioClips, beatGridCache, globalSettings, manualBeatGrid, slides, soundtrackAttribution, themeName])
+  }, [aspectRatio, audioClips, beatGridCache, globalSettings, loudnessCache, manualBeatGrid, slides, soundtrackAttribution, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -149,6 +152,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         setSlides(finalSlides)
         setSoundtrackAttribution(restoredAttribution)
         setBeatGridCache(restoredClips.length > 0 ? savedData?.beatGridCache : undefined)
+        setLoudnessCache(savedData?.loudnessCache)
         setManualBeatGrid(restoredClips.length > 0 ? savedData?.manualBeatGrid : undefined)
         setProjectName(handle.name)
         setFolderOpen(true)
@@ -252,6 +256,10 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     setAudioClips(clips)
   }, [audioClips])
 
+  const updateLoudnessCache = useCallback((cache: LoudnessCache) => {
+    setLoudnessCache(cache)
+  }, [])
+
   const updateBeatGridPersist = useCallback((update: {
     beatGridCache?: BeatGrid
     manualBeatGrid?: BeatGrid
@@ -307,6 +315,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     beatGridCache,
     globalSettings,
     setGlobalSettings,
+    loudnessCache,
     manualBeatGrid,
     slides,
     setSlides,
@@ -315,6 +324,7 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     setThemeName,
     updateAudioClips,
     updateBeatGridPersist,
+    updateLoudnessCache,
     loading,
     error,
     corruptError,

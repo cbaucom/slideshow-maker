@@ -1,6 +1,7 @@
 import type { AspectRatio } from '../timeline-core/aspect'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core/settings'
 import type { BeatGrid } from '../beat-grid/types'
+import type { LoudnessCache } from '../audio-analysis/types'
 import type { JamendoAttribution } from '../jamendo/types'
 
 export const SCHEMA_VERSION = 1
@@ -37,6 +38,7 @@ export type SlideshowJson = {
   aspectRatio?: AspectRatio
   audioClips?: SerializedAudioClip[]
   globalSettings?: GlobalSettings
+  loudnessCache?: LoudnessCache
   schemaVersion: number
   slides: SerializedSlide[]
   soundtrackFilename?: string

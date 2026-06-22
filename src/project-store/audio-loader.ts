@@ -6,6 +6,7 @@ const FALLBACK_AUDIO_FRAMES = 30 * FPS
 
 export type AudioTrack = {
   blobUrl: string
+  byteLength: number
   durationInFrames: number
   filename: string
 }
@@ -46,7 +47,7 @@ export async function enumerateAudioTracks(
       const blobUrl = URL.createObjectURL(file)
       createdUrls.push(blobUrl)
       const durationInFrames = await getAudioDurationFrames(file)
-      tracks.push({ blobUrl, durationInFrames, filename })
+      tracks.push({ blobUrl, byteLength: file.size, durationInFrames, filename })
     }
     return tracks
   } catch (error) {

@@ -121,6 +121,36 @@ describe('slidesToJson', () => {
     expect(json.manualBeatGrid).toBeUndefined()
   })
 
+  it('includes loudnessCache when provided', () => {
+    const json = slidesToJson(
+      DEFAULT_GLOBAL_SETTINGS,
+      [makeSlide('a.jpg')],
+      [{ filename: 'track.mp3' }],
+      null,
+      null,
+      null,
+      null,
+      null,
+      { 'track.mp3': { byteLength: 42, offsetDb: -3 } },
+    )
+    expect(json.loudnessCache).toEqual({ 'track.mp3': { byteLength: 42, offsetDb: -3 } })
+  })
+
+  it('omits loudnessCache when empty', () => {
+    const json = slidesToJson(
+      DEFAULT_GLOBAL_SETTINGS,
+      [makeSlide('a.jpg')],
+      [{ filename: 'track.mp3' }],
+      null,
+      null,
+      null,
+      null,
+      null,
+      {},
+    )
+    expect(json.loudnessCache).toBeUndefined()
+  })
+
   it('serializes gainDb on audio clips', () => {
     const json = slidesToJson(
       DEFAULT_GLOBAL_SETTINGS,
