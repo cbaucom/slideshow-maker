@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addAudioClip, moveAudioClip, removeAudioClip } from './audioClips'
+import { addAudioClip, moveAudioClip, removeAudioClip, updateAudioClipGain } from './audioClips'
 import type { AudioClip } from './types'
 
 const CLIPS: AudioClip[] = [
@@ -30,5 +30,18 @@ describe('audio clip ordering', () => {
       { filename: 'a.mp3' },
       { filename: 'c.mp3' },
     ])
+  })
+
+  it('updates manual gain and clears it when undefined', () => {
+    expect(updateAudioClipGain(CLIPS, 1, -3)).toEqual([
+      { filename: 'a.mp3' },
+      { filename: 'b.mp3', gainDb: -3 },
+      { filename: 'c.mp3' },
+    ])
+    expect(updateAudioClipGain(
+      [{ filename: 'b.mp3', gainDb: -3 }],
+      0,
+      undefined,
+    )).toEqual([{ filename: 'b.mp3' }])
   })
 })
