@@ -1,4 +1,5 @@
 import type { BeatGrid } from '../beat-grid/types'
+import type { LoudnessCache } from '../audio-analysis/types'
 import type { AudioClip, MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
@@ -51,6 +52,7 @@ export function slidesToJson(
   aspectRatio?: AspectRatio | null,
   beatGridCache?: BeatGrid | null,
   manualBeatGrid?: BeatGrid | null,
+  loudnessCache?: LoudnessCache | null,
 ): SlideshowJson {
   return {
     globalSettings,
@@ -65,6 +67,7 @@ export function slidesToJson(
         }
       : {}),
     ...(beatGridCache ? { beatGridCache } : {}),
+    ...(loudnessCache && Object.keys(loudnessCache).length > 0 ? { loudnessCache } : {}),
     ...(manualBeatGrid ? { manualBeatGrid } : {}),
     ...(themeName ? { themeName } : {}),
     ...(soundtrackAttribution ? { soundtrackAttribution } : {}),
