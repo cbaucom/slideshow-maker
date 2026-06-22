@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, startTransition } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
@@ -96,9 +96,11 @@ export function App() {
 
   const handleThemeChange = useCallback((name: ThemeName) => {
     const themeSettings = applyTheme(name)
-    setGlobalSettings(themeSettings)
-    setThemeName(name)
-    setSlides(prev => applyImageDuration(prev, themeSettings.imageDurationSecs))
+    startTransition(() => {
+      setThemeName(name)
+      setGlobalSettings((previous) => ({ ...previous, ...themeSettings }))
+      setSlides((previous) => applyImageDuration(previous, themeSettings.imageDurationSecs))
+    })
   }, [setGlobalSettings, setSlides, setThemeName])
 
   const handleSlideOverride = useCallback((id: string, overrides: SlideOverrides | undefined) => {
