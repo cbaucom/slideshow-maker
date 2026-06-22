@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { GlobalSettings, TransitionType, FitMode, ThemeName } from '../timeline-core/settings'
+import type { GlobalSettings, TransitionType, FitMode, ThemeName, Energy } from '../timeline-core/settings'
 import { ASPECT_RATIOS } from '../timeline-core/aspect'
 import type { AspectRatio } from '../timeline-core/aspect'
 
@@ -20,6 +20,14 @@ const THEME_LABELS: Record<ThemeName, string> = {
 }
 
 const THEME_NAMES: ThemeName[] = ['classic', 'energetic', 'plain']
+
+const ENERGY_LABELS: Record<Energy, string> = {
+  calm: 'Calm',
+  medium: 'Medium',
+  punchy: 'Punchy',
+}
+
+const ENERGY_VALUES: Energy[] = ['calm', 'medium', 'punchy']
 
 type Props = {
   aspectRatio: AspectRatio
@@ -95,6 +103,35 @@ export function GlobalSettingsPanel({ aspectRatio, onAspectRatioChange, settings
           />
           <span className="text-xs text-muted-foreground">s</span>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="global-beat-sync" className="text-xs">Beat sync</Label>
+        <Switch
+          checked={settings.beatSync !== false}
+          id="global-beat-sync"
+          onCheckedChange={(checked) => set('beatSync', checked)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs text-muted-foreground">Energy</Label>
+        <ToggleGroup
+          className="w-full"
+          onValueChange={(value) => {
+            if (value) set('energy', value as Energy)
+          }}
+          size="sm"
+          type="single"
+          value={settings.energy ?? 'medium'}
+          variant="outline"
+        >
+          {ENERGY_VALUES.map((energy) => (
+            <ToggleGroupItem className="flex-1 text-xs" key={energy} value={energy}>
+              {ENERGY_LABELS[energy]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       <div className="flex items-center justify-between gap-2">

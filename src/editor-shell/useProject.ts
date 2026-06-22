@@ -22,6 +22,7 @@ import { enumerateFolder, revokeSlideBlobUrls } from '../project-store/media-loa
 import { reconcileSlides, slidesToJson } from './slidePersistence'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { downloadTrack, sanitizeFilename } from '../jamendo'
+import type { BeatGrid } from '../beat-grid'
 import { FPS } from './PlayerPane'
 
 const AUTOSAVE_DELAY = 2000
@@ -46,6 +47,8 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const [soundtrackFilename, setSoundtrackFilename] = useState<string | null>(null)
   const [soundtrackAttribution, setSoundtrackAttribution] = useState<JamendoAttribution | null>(null)
   const [themeName, setThemeName] = useState<ThemeName | null>(null)
+  const [beatGridCache, setBeatGridCache] = useState<BeatGrid | undefined>()
+  const [manualBeatGrid, setManualBeatGrid] = useState<BeatGrid | undefined>()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [corruptError, setCorruptError] = useState<string | null>(null)
@@ -91,9 +94,18 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     if (!handle) return
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     autosaveTimerRef.current = setTimeout(() => {
-      saveProject(handle, slidesToJson(globalSettings, slides, soundtrackFilename, themeName, soundtrackAttribution, aspectRatio)).catch(console.error)
+      saveProject(handle, slidesToJson(
+        globalSettings,
+        slides,
+        soundtrackFilename,
+        themeName,
+        soundtrackAttribution,
+        aspectRatio,
+        beatGridCache,
+        manualBeatGrid,
+      )).catch(console.error)
     }, AUTOSAVE_DELAY)
-  }, [aspectRatio, globalSettings, slides, soundtrackFilename, soundtrackAttribution, themeName])
+  }, [aspectRatio, beatGridCache, globalSettings, manualBeatGrid, slides, soundtrackAttribution, soundtrackFilename, themeName])
 
   const loadFolder = useCallback(
     async (handle: FileSystemDirectoryHandle, savedData?: SlideshowJson) => {
@@ -130,6 +142,8 @@ export function useProject({ onFolderLoaded }: Options = {}) {
         setSlides(finalSlides)
         setSoundtrackFilename(validSoundtrack)
         setSoundtrackAttribution(restoredAttribution)
+        setBeatGridCache(validSoundtrack ? savedData?.beatGridCache : undefined)
+        setManualBeatGrid(validSoundtrack ? savedData?.manualBeatGrid : undefined)
         setProjectName(handle.name)
         setFolderOpen(true)
         onFolderLoaded?.()
@@ -205,6 +219,8 @@ export function useProject({ onFolderLoaded }: Options = {}) {
       setAudioTracks(nextAudioTracks)
       setSoundtrackFilename(filename)
       setSoundtrackAttribution(attribution)
+      setBeatGridCache(undefined)
+      setManualBeatGrid(undefined)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to refresh audio tracks')
     }
@@ -221,6 +237,16 @@ export function useProject({ onFolderLoaded }: Options = {}) {
   const changeSoundtrack = useCallback((filename: string | null) => {
     setSoundtrackFilename(filename)
     setSoundtrackAttribution(null)
+    setBeatGridCache(undefined)
+    setManualBeatGrid(undefined)
+  }, [])
+
+  const updateBeatGridPersist = useCallback((update: {
+    beatGridCache?: BeatGrid
+    manualBeatGrid?: BeatGrid
+  }) => {
+    if ('beatGridCache' in update) setBeatGridCache(update.beatGridCache)
+    if ('manualBeatGrid' in update) setManualBeatGrid(update.manualBeatGrid)
   }, [])
 
   const dismissCorruptError = useCallback(() => {
@@ -266,13 +292,16 @@ export function useProject({ onFolderLoaded }: Options = {}) {
     aspectRatio,
     setAspectRatio,
     audioTracks,
+    beatGridCache,
     globalSettings,
     setGlobalSettings,
+    manualBeatGrid,
     slides,
     setSlides,
     soundtrackFilename,
     themeName,
     setThemeName,
+    updateBeatGridPersist,
     loading,
     error,
     corruptError,

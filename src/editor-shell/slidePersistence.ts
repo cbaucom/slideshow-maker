@@ -1,3 +1,4 @@
+import type { BeatGrid } from '../beat-grid/types'
 import type { MediaSlide, Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
@@ -35,11 +36,15 @@ export function slidesToJson(
   themeName?: ThemeName | null,
   soundtrackAttribution?: JamendoAttribution | null,
   aspectRatio?: AspectRatio | null,
+  beatGridCache?: BeatGrid | null,
+  manualBeatGrid?: BeatGrid | null,
 ): SlideshowJson {
   return {
     globalSettings,
     schemaVersion: SCHEMA_VERSION,
     ...(aspectRatio ? { aspectRatio } : {}),
+    ...(beatGridCache ? { beatGridCache } : {}),
+    ...(manualBeatGrid ? { manualBeatGrid } : {}),
     ...(soundtrackFilename ? { soundtrackFilename } : {}),
     ...(themeName ? { themeName } : {}),
     ...(soundtrackAttribution ? { soundtrackAttribution } : {}),
