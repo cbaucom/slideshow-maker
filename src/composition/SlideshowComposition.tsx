@@ -67,7 +67,7 @@ export function SlideshowComposition({ plan }: SlideshowProps) {
       ) : null}
       <TransitionSeries>
       {plan.entries.map((entry) => (
-        <React.Fragment key={entry.slide.id}>
+        <React.Fragment key={`${entry.startFrame}-${entry.slide.id}`}>
           {entry.transitionIn && entry.transitionIn.durationInFrames > 0 && (
             <TransitionSeries.Transition
               presentation={getPresentation(entry.transitionIn.type)}

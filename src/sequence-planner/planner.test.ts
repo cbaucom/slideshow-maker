@@ -397,7 +397,7 @@ describe('plan — audio clips', () => {
       },
     ])
     expect(result.duckingEnvelope).toEqual(DUCKING)
-    expect(result.totalFrames).toBe(90)
+    expect(result.totalFrames).toBe(120)
   })
 
   it('omits audio segments when not provided', () => {
@@ -424,11 +424,63 @@ describe('plan — audio clips', () => {
     ])
   })
 
-  it('keeps slideshow totalFrames independent of audio duration', () => {
+  it('uses visual duration when audio is shorter than slides', () => {
     const shortClip = { blobUrl: 'blob:short', durationInFrames: 60 }
     const result = plan([IMG_90, IMG_90B], CROSSFADE, undefined, [shortClip])
     expect(result.totalFrames).toBe(165)
     expect(result.audioSegments?.[0].durationInFrames).toBe(60)
+    expect(result.entries.length).toBe(2)
+  })
+
+  it('extends totalFrames to audio duration and loops the slide sequence', () => {
+    const longClip = { blobUrl: 'blob:long', durationInFrames: 400 }
+    const result = plan([IMG_90, IMG_90B], CROSSFADE, undefined, [longClip])
+    expect(result.totalFrames).toBe(400)
+    expect(result.entries.length).toBeGreaterThan(2)
+    expect(result.entries[2].startFrame).toBe(165)
+    const lastEntry = result.entries.at(-1)
+    expect(lastEntry).toBeDefined()
+    expect(lastEntry!.startFrame + lastEntry!.durationInFrames).toBe(400)
+  })
+})
+
+describe('plan — audio-driven loop golden snapshot', () => {
+  const CUT_SETTINGS: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut' }
+  const LONG_AUDIO = [{ blobUrl: 'blob:long', durationInFrames: 250 }]
+
+  it('matches golden snapshot for looped entries with a partial tail', () => {
+    const result = plan([IMG_90, IMG_90B], CUT_SETTINGS, undefined, LONG_AUDIO)
+
+    expect(result.totalFrames).toBe(250)
+    expect(result.entries).toEqual([
+      {
+        slide: IMG_90,
+        startFrame: 0,
+        durationInFrames: 90,
+        transitionIn: undefined,
+        fitMode: 'cover',
+        kenBurns: result.entries[0].kenBurns,
+        videoVolume: 1,
+      },
+      {
+        slide: IMG_90B,
+        startFrame: 90,
+        durationInFrames: 90,
+        transitionIn: { type: 'cut', durationInFrames: 0 },
+        fitMode: 'cover',
+        kenBurns: result.entries[1].kenBurns,
+        videoVolume: 1,
+      },
+      {
+        slide: IMG_90,
+        startFrame: 180,
+        durationInFrames: 70,
+        transitionIn: undefined,
+        fitMode: 'cover',
+        kenBurns: result.entries[2].kenBurns,
+        videoVolume: 1,
+      },
+    ])
   })
 })
 
