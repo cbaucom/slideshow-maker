@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { mediaAspectRatioCss } from '../timeline-core/aspect'
 import type { Slide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 
@@ -64,7 +65,14 @@ export function StoryboardFilmstrip({
               onDragEnd={() => { dragIndexRef.current = null }}
               onClick={() => onSlideClick(slide.id)}
             >
-              <div className="relative aspect-video w-full overflow-hidden rounded-sm">
+              <div
+                className="relative flex w-full items-center justify-center overflow-hidden rounded-sm bg-black"
+                style={{
+                  aspectRatio: isTitleSlide(slide)
+                    ? '16 / 9'
+                    : mediaAspectRatioCss(slide.width, slide.height),
+                }}
+              >
                 {isTitleSlide(slide) ? (
                   <div
                     className="flex h-full w-full items-center justify-center px-1 text-xs font-medium"
@@ -77,17 +85,17 @@ export function StoryboardFilmstrip({
                   </div>
                 ) : slide.type === 'video' ? (
                   <video
-                    src={slide.blobUrl}
-                    className="h-full w-full object-cover"
-                    muted
+                    className="max-h-full max-w-full object-contain"
                     draggable={false}
+                    muted
+                    src={slide.blobUrl}
                   />
                 ) : (
                   <img
-                    src={slide.blobUrl}
                     alt={slide.filename}
-                    className="h-full w-full object-cover"
+                    className="max-h-full max-w-full object-contain"
                     draggable={false}
+                    src={slide.blobUrl}
                   />
                 )}
                 {!isTitleSlide(slide) && slide.type === 'video' && (

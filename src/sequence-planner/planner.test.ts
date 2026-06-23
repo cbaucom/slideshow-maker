@@ -261,6 +261,13 @@ describe('plan — Ken Burns vectors', () => {
 describe('plan — fit mode resolution', () => {
   const IMG = makeSlide('i', 'image', 90)
   const VID = makeSlide('v', 'video', 120)
+  const LANDSCAPE_IMG: MediaSlide = {
+    ...IMG,
+    filename: 'landscape.jpg',
+    height: 1080,
+    width: 1920,
+  }
+  const PORTRAIT_CANVAS = '9:16' as const
 
   it('videos always get fitMode=contain regardless of global setting', () => {
     const settings: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'cover' }
@@ -269,7 +276,7 @@ describe('plan — fit mode resolution', () => {
     expect(result.entries[1].fitMode).toBe('contain')
   })
 
-  it('images inherit global fitMode', () => {
+  it('images inherit global fitMode when not smart-fit', () => {
     const cover: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'cover' }
     const contain: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'contain' }
     const blur: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'blur-fill' }
@@ -277,6 +284,24 @@ describe('plan — fit mode resolution', () => {
     expect(plan([IMG], cover).entries[0].fitMode).toBe('cover')
     expect(plan([IMG], contain).entries[0].fitMode).toBe('contain')
     expect(plan([IMG], blur).entries[0].fitMode).toBe('blur-fill')
+  })
+
+  it('smart-fit uses blur-fill for landscape media in a portrait canvas', () => {
+    const settings: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'smart-fit' }
+    const result = plan([LANDSCAPE_IMG], settings, undefined, undefined, undefined, undefined, PORTRAIT_CANVAS)
+    expect(result.entries[0].fitMode).toBe('blur-fill')
+  })
+
+  it('smart-fit uses cover for matching landscape media in a landscape canvas', () => {
+    const settings: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'smart-fit' }
+    const result = plan([LANDSCAPE_IMG], settings)
+    expect(result.entries[0].fitMode).toBe('cover')
+  })
+
+  it('smart-fit falls back to contain when media dimensions are unknown', () => {
+    const settings: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, fitMode: 'smart-fit' }
+    const result = plan([IMG], settings)
+    expect(result.entries[0].fitMode).toBe('contain')
   })
 })
 
@@ -326,7 +351,7 @@ describe('plan — per-slide overrides', () => {
   it('undefined override field falls back to global', () => {
     const img = { ...makeSlide('a', 'image', 90), overrides: { fitMode: undefined } }
     const result = plan([img], BASE)
-    expect(result.entries[0].fitMode).toBe('cover') // global default
+    expect(result.entries[0].fitMode).toBe('cover') // global default in BASE fixture
   })
 })
 
@@ -456,7 +481,11 @@ describe('plan — audio clips', () => {
 })
 
 describe('plan — audio-driven loop golden snapshot', () => {
-  const CUT_SETTINGS: GlobalSettings = { ...DEFAULT_GLOBAL_SETTINGS, transitionType: 'cut' }
+  const CUT_SETTINGS: GlobalSettings = {
+    ...DEFAULT_GLOBAL_SETTINGS,
+    fitMode: 'cover',
+    transitionType: 'cut',
+  }
   const LONG_AUDIO = [{ blobUrl: 'blob:long', durationInFrames: 250 }]
 
   it('matches golden snapshot for looped entries with a partial tail', () => {

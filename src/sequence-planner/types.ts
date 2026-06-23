@@ -1,4 +1,5 @@
-import type { FitMode, TransitionType } from '../timeline-core/settings'
+import type { TransitionType } from '../timeline-core/settings'
+import type { ConcreteFitMode } from '../timeline-core/smartFit'
 import type { Slide } from '../timeline-core/types'
 
 export type TransitionSpec = {
@@ -37,7 +38,7 @@ export type RenderPlanEntry = {
   startFrame: number
   durationInFrames: number
   transitionIn?: TransitionSpec
-  fitMode: FitMode
+  fitMode: ConcreteFitMode
   kenBurns: KenBurnsVector | null
   videoVolume: number
 }
@@ -65,4 +66,6 @@ export type RenderPlan = {
 
 export type MediaMetadata = {
   durationInFrames?: number
+  height?: number
+  width?: number
 }

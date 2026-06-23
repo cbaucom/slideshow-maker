@@ -1,5 +1,9 @@
 import { resolve } from '../timeline-core/settings'
 import type { FitMode, GlobalSettings, TransitionType } from '../timeline-core/settings'
+import type { AspectRatio } from '../timeline-core/aspect'
+import { dimensionsForAspectRatio } from '../timeline-core/aspect'
+import { resolveSmartFit } from '../timeline-core/smartFit'
+import type { ConcreteFitMode } from '../timeline-core/smartFit'
 import { isTitleSlide } from '../timeline-core/types'
 import type { Slide } from '../timeline-core/types'
 import type { BeatGrid } from '../beat-grid/types'
@@ -104,6 +108,7 @@ export function plan(
   audioClips?: AudioClipInput[],
   beatGrid?: BeatGrid,
   concatenatedBeatTimesSecs?: number[],
+  aspectRatio: AspectRatio = '16:9',
 ): RenderPlan {
   if (slides.length === 0) {
     const audioTotal = totalAudioFrames(audioClips)
@@ -146,9 +151,30 @@ export function plan(
     return raw
   }
 
-  function getFitMode(slide: Slide): FitMode {
+  const canvas = dimensionsForAspectRatio(aspectRatio)
+
+  function getMediaDimensions(slide: Slide): { height?: number; width?: number } {
+    if (isTitleSlide(slide)) return {}
+    const meta = mediaMetadata?.get(slide.filename)
+    return {
+      height: slide.height ?? meta?.height,
+      width: slide.width ?? meta?.width,
+    }
+  }
+
+  function resolveConcreteFitMode(slide: Slide, fitMode: FitMode): ConcreteFitMode {
+    if (fitMode !== 'smart-fit') return fitMode
+
+    const { height, width } = getMediaDimensions(slide)
+    if (width === undefined || height === undefined) return 'contain'
+
+    return resolveSmartFit(width, height, canvas.width, canvas.height)
+  }
+
+  function getFitMode(slide: Slide): ConcreteFitMode {
     if (isTitleSlide(slide)) return 'cover' // unused; TitleSlideView renders its own layout
-    return slide.type === 'video' ? 'contain' : resolved(slide).fitMode
+    if (slide.type === 'video') return 'contain'
+    return resolveConcreteFitMode(slide, resolved(slide).fitMode)
   }
 
   function getTransitionDur(slide: Slide): number {

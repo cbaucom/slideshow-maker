@@ -2,7 +2,7 @@ import { isTitleSlide } from './types'
 import type { Slide } from './types'
 
 export type TransitionType = 'crossfade' | 'dip-to-black' | 'cut'
-export type FitMode = 'cover' | 'contain' | 'blur-fill'
+export type FitMode = 'blur-fill' | 'contain' | 'cover' | 'smart-fit'
 export type KenBurnsMode = 'alternate' | 'zoom-in-only'
 export type ThemeName = 'classic' | 'energetic' | 'plain'
 export type Energy = 'calm' | 'medium' | 'punchy'
@@ -32,7 +32,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   imageDurationSecs: 3,
   transitionType: 'crossfade',
   kenBurns: true,
-  fitMode: 'cover',
+  fitMode: 'smart-fit',
 }
 
 const FPS = 30
@@ -54,20 +54,20 @@ export const THEMES: Record<ThemeName, GlobalSettings> = {
     imageDurationSecs: 4,
     transitionType: 'crossfade',
     kenBurns: true,
-    fitMode: 'cover',
+    fitMode: 'smart-fit',
   },
   energetic: {
     imageDurationSecs: 2,
     transitionType: 'cut',
     kenBurns: true,
-    fitMode: 'cover',
+    fitMode: 'smart-fit',
     kenBurnsMode: 'zoom-in-only',
   },
   plain: {
     imageDurationSecs: 5,
     transitionType: 'cut',
     kenBurns: false,
-    fitMode: 'cover',
+    fitMode: 'smart-fit',
   },
 }
 
