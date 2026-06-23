@@ -27,6 +27,7 @@ type Props = {
   onSeek: (frame: number) => void
   onSlideSelect: (id: string, event: { metaKey: boolean; seek?: boolean; shiftKey: boolean }) => void
   onToggleExclude: (id: string) => void
+  onToggleExcludeIndices: (indices: number[]) => void
   renderPlan: RenderPlan
   selectedSlideIds: ReadonlySet<string>
   slides: Slide[]
@@ -45,6 +46,7 @@ export function TimelinePanel({
   onSeek,
   onSlideSelect,
   onToggleExclude,
+  onToggleExcludeIndices,
   renderPlan,
   selectedSlideIds,
   slides,
@@ -153,6 +155,7 @@ export function TimelinePanel({
                     onReorderBlock={onReorderBlock}
                     onSlideSelect={onSlideSelect}
                     onToggleExclude={onToggleExclude}
+                    onToggleExcludeIndices={onToggleExcludeIndices}
                     selectedSlideIds={selectedSlideIds}
                     slide={slide}
                     slideIndex={slideIndex}

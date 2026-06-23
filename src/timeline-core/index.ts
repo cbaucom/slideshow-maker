@@ -10,6 +10,7 @@ export {
   moveSlidesToBeginning,
   moveSlidesToEnd,
   toggleExcluded,
+  toggleExcludedForIndices,
 } from './timeline'
 export { resolve, applyImageDuration, DEFAULT_GLOBAL_SETTINGS, THEMES, applyTheme } from './settings'
 export type {

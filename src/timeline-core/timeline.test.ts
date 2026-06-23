@@ -7,6 +7,7 @@ import {
   moveSlidesToBeginning,
   moveSlidesToEnd,
   toggleExcluded,
+  toggleExcludedForIndices,
 } from './timeline'
 import type { MediaSlide, Slide } from './types'
 
@@ -78,6 +79,42 @@ describe('moveSlideBlock', () => {
   it('moves a non-contiguous block backward', () => {
     const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
     expect(moveSlideBlock(slides, [1, 3], 0).map((entry) => entry.id)).toEqual(['b', 'd', 'a', 'c', 'e'])
+  })
+
+  it('matches moveSlide for a single-item forward drop mid-list', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1], 2).map((entry) => entry.id))
+      .toEqual(moveSlide(slides, 1, 2).map((entry) => entry.id))
+  })
+
+  it('matches moveSlide for a single-item forward drop at end', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1], 4).map((entry) => entry.id))
+      .toEqual(moveSlide(slides, 1, 4).map((entry) => entry.id))
+  })
+
+  it('moves a contiguous block backward to a mid-list target', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [3, 4], 1).map((entry) => entry.id)).toEqual(['a', 'd', 'e', 'b', 'c'])
+  })
+
+  it('moves a non-contiguous block to a mid-list target', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 2).map((entry) => entry.id)).toEqual(['a', 'c', 'b', 'd', 'e'])
+  })
+})
+
+describe('toggleExcludedForIndices', () => {
+  it('excludes all selected slides when any are included', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    const result = toggleExcludedForIndices(slides, [0, 2])
+    expect(result.map((entry) => entry.excluded)).toEqual([true, false, true])
+  })
+
+  it('includes all selected slides when all are excluded', () => {
+    const slides = [slide('a', true), slide('b'), slide('c', true)]
+    const result = toggleExcludedForIndices(slides, [0, 2])
+    expect(result.map((entry) => entry.excluded)).toEqual([false, false, false])
   })
 })
 

@@ -20,10 +20,14 @@ import type { BeatGridAnalysisStatus } from './useBeatGrid'
 type Props = {
   analysisStatus: BeatGridAnalysisStatus
   aspectRatio: AspectRatio
+  audioClips: AudioClip[]
   audioTracks: AudioTrack[]
   effectiveBeatGrid: BeatGrid | undefined
+  globalSettings: GlobalSettings
   jamendoClientId: string | undefined
+  loudnessCache: LoudnessCache | undefined
   manualBeatGrid: BeatGrid | undefined
+  onAccordionChange: (openSections: string[]) => void
   onAddTitleSlide: () => void
   onApplyManualBpm: (bpm: number, firstBeatOffsetSecs: number) => void
   onApplyTapTimestamps: (tapTimestampsMs: number[]) => void
@@ -38,9 +42,7 @@ type Props = {
     id: string,
     updates: Partial<Pick<TitleSlide, 'heading' | 'subtext' | 'style' | 'durationInFrames'>>,
   ) => void
-  audioClips: AudioClip[]
-  globalSettings: GlobalSettings
-  loudnessCache: LoudnessCache | undefined
+  openSections: string[]
   selectedSlide: Slide | null
   selectedSlideCount: number
   themeName: ThemeName | null
@@ -49,11 +51,14 @@ type Props = {
 export function EditorSidebar({
   analysisStatus,
   aspectRatio,
+  audioClips,
   audioTracks,
   effectiveBeatGrid,
   globalSettings,
   jamendoClientId,
+  loudnessCache,
   manualBeatGrid,
+  onAccordionChange,
   onAddTitleSlide,
   onApplyManualBpm,
   onApplyTapTimestamps,
@@ -65,27 +70,19 @@ export function EditorSidebar({
   onSlideOverride,
   onThemeChange,
   onUpdateTitleSlide,
-  audioClips,
-  loudnessCache,
+  openSections,
   selectedSlide,
   selectedSlideCount,
   themeName,
 }: Props) {
-  const selectionKey = selectedSlideCount > 0
-    ? `${selectedSlideCount}-${selectedSlide?.id ?? ''}`
-    : 'none'
-  const defaultOpenSections = selectedSlideCount > 0
-    ? ['music', 'selected-slide', 'settings', 'soundtrack']
-    : ['music', 'settings', 'soundtrack']
-
   return (
     <aside className="flex h-full min-h-0 flex-col bg-card">
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <Accordion
           className="px-3"
-          defaultValue={defaultOpenSections}
-          key={selectionKey}
+          onValueChange={onAccordionChange}
           type="multiple"
+          value={openSections}
         >
           {selectedSlideCount > 0 && selectedSlide ? (
             <AccordionItem value="selected-slide">

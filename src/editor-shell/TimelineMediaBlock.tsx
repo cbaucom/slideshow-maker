@@ -21,6 +21,7 @@ type Props = {
   onReorderBlock: (fromIndices: number[], toIndex: number) => void
   onSlideSelect: (id: string, event: { metaKey: boolean; seek?: boolean; shiftKey: boolean }) => void
   onToggleExclude: (id: string) => void
+  onToggleExcludeIndices: (indices: number[]) => void
   selectedSlideIds: ReadonlySet<string>
   slide: Slide
   slideIndex: number
@@ -45,6 +46,7 @@ export function TimelineMediaBlock({
   onReorderBlock,
   onSlideSelect,
   onToggleExclude,
+  onToggleExcludeIndices,
   selectedSlideIds,
   slide,
   slideIndex,
@@ -58,6 +60,11 @@ export function TimelineMediaBlock({
       .map((entry, index) => (selectedSlideIds.has(entry.id) ? index : -1))
       .filter((index) => index !== -1)
     : [slideIndex]
+  const contextSlides = resolvedContextIndices.map((index) => slides[index]).filter((entry) => entry !== undefined)
+  const allContextSlidesExcluded = contextSlides.length > 0 && contextSlides.every((entry) => entry.excluded)
+  const excludeMenuLabel = contextSlides.length > 1
+    ? (allContextSlidesExcluded ? 'Include selected in slideshow' : 'Exclude selected from slideshow')
+    : (slide.excluded ? 'Include in slideshow' : 'Exclude from slideshow')
 
   return (
     <ContextMenu>
@@ -189,8 +196,8 @@ export function TimelineMediaBlock({
           Send to End
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => onToggleExclude(slide.id)}>
-          {slide.excluded ? 'Include in slideshow' : 'Exclude from slideshow'}
+        <ContextMenuItem onSelect={() => onToggleExcludeIndices(resolvedContextIndices)}>
+          {excludeMenuLabel}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

@@ -27,6 +27,9 @@
 - Selection no longer opens a blocking modal
 - Per-slide overrides live in sidebar **Selected slide** accordion (auto-expands on select)
 - Multi-select shows a summary in the same accordion section
+- Sidebar accordion state is controlled in App; only auto-expands Selected slide on first select
+- Context menu exclude applies to the full selection via `toggleExcludedForIndices`
+- `moveSlideBlock` insert position mirrors `moveSlide` forward/backward semantics
 
 ## Keyboard (stretch — not in initial slice)
 

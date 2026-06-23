@@ -11,6 +11,7 @@ import {
   moveSlidesToBeginning,
   moveSlidesToEnd,
   toggleExcluded,
+  toggleExcludedForIndices,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
@@ -34,6 +35,7 @@ export function App() {
   const [currentFrame, setCurrentFrame] = useState(0)
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [sidebarOpenSections, setSidebarOpenSections] = useState(['settings', 'soundtrack'])
   const clearSelectionRef = useRef<(() => void) | null>(null)
 
   const project = useProject({
@@ -109,7 +111,11 @@ export function App() {
   }, [setSlides])
 
   const handleToggleExclude = useCallback((id: string) => {
-    setSlides(prev => toggleExcluded(prev, id))
+    setSlides((previous) => toggleExcluded(previous, id))
+  }, [setSlides])
+
+  const handleToggleExcludeIndices = useCallback((indices: number[]) => {
+    setSlides((previous) => toggleExcludedForIndices(previous, indices))
   }, [setSlides])
 
   const handleSettingsChange = useCallback((updated: GlobalSettings) => {
@@ -191,6 +197,9 @@ export function App() {
 
   const handleSlideSelect = useCallback((id: string, event: { metaKey: boolean; seek?: boolean; shiftKey: boolean }) => {
     selectSlide(id, event)
+    setSidebarOpenSections((previous) => (
+      previous.includes('selected-slide') ? previous : ['selected-slide', ...previous]
+    ))
 
     if (event.seek !== false && !event.metaKey && !event.shiftKey) {
       const startFrame = startFrameForSlideId(renderPlan, id)
@@ -282,6 +291,7 @@ export function App() {
                 onSeek={handleSeek}
                 onSlideSelect={handleSlideSelect}
                 onToggleExclude={handleToggleExclude}
+                onToggleExcludeIndices={handleToggleExcludeIndices}
                 renderPlan={renderPlan}
                 selectedSlideIds={selectedSlideIds}
                 slides={slides}
@@ -298,6 +308,7 @@ export function App() {
                 jamendoClientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
                 loudnessCache={loudnessCache}
                 manualBeatGrid={manualBeatGrid}
+                onAccordionChange={setSidebarOpenSections}
                 onAddTitleSlide={handleAddTitleSlide}
                 onApplyManualBpm={beatGrid.applyManualBpm}
                 onApplyTapTimestamps={beatGrid.applyTapTimestamps}
@@ -309,6 +320,7 @@ export function App() {
                 onSlideOverride={handleSlideOverride}
                 onThemeChange={handleThemeChange}
                 onUpdateTitleSlide={handleUpdateTitleSlide}
+                openSections={sidebarOpenSections}
                 selectedSlide={selectedSlide}
                 selectedSlideCount={selectedSlideCount}
                 themeName={themeName}
