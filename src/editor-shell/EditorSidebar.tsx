@@ -5,15 +5,16 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import type { AspectRatio, GlobalSettings, ThemeName } from '../timeline-core'
-import type { AudioClip } from '../timeline-core/types'
+import type { AspectRatio, GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
+import type { AudioClip, Slide, TitleSlide } from '../timeline-core/types'
 import type { AudioTrack } from '../project-store'
 import type { BeatGrid } from '../beat-grid/types'
 import type { LoudnessCache } from '../audio-analysis/types'
 import type { JamendoAttribution, JamendoTrack } from '../jamendo/types'
 import { GlobalSettingsPanel } from './GlobalSettingsPanel'
-import { SoundtrackPanel } from './SoundtrackPanel'
 import { JamendoPanel } from './JamendoPanel'
+import { SelectedSlidePanel } from './SelectedSlidePanel'
+import { SoundtrackPanel } from './SoundtrackPanel'
 import type { BeatGridAnalysisStatus } from './useBeatGrid'
 
 type Props = {
@@ -31,10 +32,17 @@ type Props = {
   onClearManualBeatGrid: () => void
   onJamendoAdd: (track: JamendoTrack, attribution: JamendoAttribution) => Promise<void>
   onSettingsChange: (updated: GlobalSettings) => void
+  onSlideOverride: (id: string, overrides: SlideOverrides | undefined) => void
   onThemeChange: (name: ThemeName) => void
+  onUpdateTitleSlide: (
+    id: string,
+    updates: Partial<Pick<TitleSlide, 'heading' | 'subtext' | 'style' | 'durationInFrames'>>,
+  ) => void
   audioClips: AudioClip[]
+  globalSettings: GlobalSettings
   loudnessCache: LoudnessCache | undefined
-  settings: GlobalSettings
+  selectedSlide: Slide | null
+  selectedSlideCount: number
   themeName: ThemeName | null
 }
 
@@ -43,6 +51,7 @@ export function EditorSidebar({
   aspectRatio,
   audioTracks,
   effectiveBeatGrid,
+  globalSettings,
   jamendoClientId,
   manualBeatGrid,
   onAddTitleSlide,
@@ -53,22 +62,48 @@ export function EditorSidebar({
   onClearManualBeatGrid,
   onJamendoAdd,
   onSettingsChange,
+  onSlideOverride,
   onThemeChange,
+  onUpdateTitleSlide,
   audioClips,
   loudnessCache,
-  settings,
+  selectedSlide,
+  selectedSlideCount,
   themeName,
 }: Props) {
+  const selectionKey = selectedSlideCount > 0
+    ? `${selectedSlideCount}-${selectedSlide?.id ?? ''}`
+    : 'none'
+  const defaultOpenSections = selectedSlideCount > 0
+    ? ['music', 'selected-slide', 'settings', 'soundtrack']
+    : ['music', 'settings', 'soundtrack']
+
   return (
     <aside className="flex h-full min-h-0 flex-col bg-card">
-      {/* native scroll, not ScrollArea: Radix's viewport sizes content to its
-          intrinsic width, so one long filename pushes every control off-panel */}
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <Accordion
           className="px-3"
-          defaultValue={['settings', 'soundtrack', 'music']}
+          defaultValue={defaultOpenSections}
+          key={selectionKey}
           type="multiple"
         >
+          {selectedSlideCount > 0 && selectedSlide ? (
+            <AccordionItem value="selected-slide">
+              <AccordionTrigger className="py-3 text-sm">
+                {selectedSlideCount === 1 ? 'Selected slide' : `${selectedSlideCount} slides selected`}
+              </AccordionTrigger>
+              <AccordionContent>
+                <SelectedSlidePanel
+                  globalSettings={globalSettings}
+                  onOverride={onSlideOverride}
+                  onUpdateTitleSlide={onUpdateTitleSlide}
+                  selectedSlide={selectedSlide}
+                  selectedSlideCount={selectedSlideCount}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          ) : null}
+
           <AccordionItem value="settings">
             <AccordionTrigger className="py-3 text-sm">Settings</AccordionTrigger>
             <AccordionContent>
@@ -77,13 +112,13 @@ export function EditorSidebar({
                 onAspectRatioChange={onAspectRatioChange}
                 onChange={onSettingsChange}
                 onThemeChange={onThemeChange}
-                settings={settings}
+                settings={globalSettings}
                 themeName={themeName}
               />
             </AccordionContent>
           </AccordionItem>
 
-          {audioTracks.length > 0 && (
+          {audioTracks.length > 0 ? (
             <AccordionItem value="soundtrack">
               <AccordionTrigger className="py-3 text-sm">Soundtrack</AccordionTrigger>
               <AccordionContent>
@@ -91,7 +126,7 @@ export function EditorSidebar({
                   analysisStatus={analysisStatus}
                   audioClips={audioClips}
                   audioTracks={audioTracks}
-                  beatSync={settings.beatSync !== false}
+                  beatSync={globalSettings.beatSync !== false}
                   effectiveBeatGrid={effectiveBeatGrid}
                   loudnessCache={loudnessCache}
                   manualBeatGrid={manualBeatGrid}
@@ -102,12 +137,11 @@ export function EditorSidebar({
                 />
               </AccordionContent>
             </AccordionItem>
-          )}
+          ) : null}
 
           {jamendoClientId ? (
             <AccordionItem value="music">
               <AccordionTrigger className="py-3 text-sm">Find Music (Jamendo)</AccordionTrigger>
-              {/* forceMount so collapsing doesn't wipe in-progress search state */}
               <AccordionContent forceMount>
                 <JamendoPanel clientId={jamendoClientId} onAdd={onJamendoAdd} />
               </AccordionContent>

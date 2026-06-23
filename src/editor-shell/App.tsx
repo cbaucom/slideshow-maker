@@ -1,14 +1,16 @@
-import { useCallback, useDeferredValue, useMemo, useRef, useState, startTransition } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, startTransition } from 'react'
 import type { PlayerRef } from '@remotion/player'
 import { Button } from '@/components/ui/button'
 import type { Slide, TitleSlide } from '../timeline-core/types'
 import { isTitleSlide } from '../timeline-core/types'
 import {
-  moveSlide,
-  toggleExcluded,
-  filterIncluded,
   applyImageDuration,
   createTitleSlide,
+  filterIncluded,
+  moveSlideBlock,
+  moveSlidesToBeginning,
+  moveSlidesToEnd,
+  toggleExcluded,
 } from '../timeline-core'
 import type { GlobalSettings, SlideOverrides, ThemeName } from '../timeline-core'
 import { applyTheme, dimensionsForAspectRatio } from '../timeline-core'
@@ -22,21 +24,23 @@ import { EditorSidebar } from './EditorSidebar'
 import { EmptyState } from './EmptyState'
 import { PlayerPane, FPS } from './PlayerPane'
 import { TimelinePanel } from './TimelinePanel'
-import { SlideSettingsDialog } from './SlideSettingsDialog'
-import { TitleSlideDialog } from './TitleSlideDialog'
 import { useProject } from './useProject'
 import { useAudioClipAnalysis } from './useAudioClipAnalysis'
 import { useBeatGrid } from './useBeatGrid'
+import { useSlideSelection } from './useSlideSelection'
 
 export function App() {
   const playerRef = useRef<PlayerRef>(null)
   const [currentFrame, setCurrentFrame] = useState(0)
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
-  const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const clearSelectionRef = useRef<(() => void) | null>(null)
 
-  const clearSelection = useCallback(() => setSelectedSlideId(null), [])
-  const project = useProject({ onFolderLoaded: clearSelection })
+  const project = useProject({
+    onFolderLoaded: () => {
+      clearSelectionRef.current?.()
+    },
+  })
   const {
     aspectRatio,
     setAspectRatio,
@@ -63,6 +67,17 @@ export function App() {
     recentProjects,
   } = project
 
+  const slideIds = useMemo(() => slides.map((slide) => slide.id), [slides])
+  const {
+    clearSelection,
+    handleSlideSelect: selectSlide,
+    selectedSlideIds,
+  } = useSlideSelection({ slideIds })
+
+  useEffect(() => {
+    clearSelectionRef.current = clearSelection
+  }, [clearSelection])
+
   const { pendingBeatFilenames } = useAudioClipAnalysis({
     audioClips,
     audioTracks,
@@ -81,8 +96,16 @@ export function App() {
     persisted: { beatGridCache, manualBeatGrid },
   })
 
-  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
-    setSlides(prev => moveSlide(prev, fromIndex, toIndex))
+  const handleReorderBlock = useCallback((fromIndices: number[], toIndex: number) => {
+    setSlides((previous) => moveSlideBlock(previous, fromIndices, toIndex))
+  }, [setSlides])
+
+  const handleMoveToBeginning = useCallback((indices: number[]) => {
+    setSlides((previous) => moveSlidesToBeginning(previous, indices))
+  }, [setSlides])
+
+  const handleMoveToEnd = useCallback((indices: number[]) => {
+    setSlides((previous) => moveSlidesToEnd(previous, indices))
   }, [setSlides])
 
   const handleToggleExclude = useCallback((id: string) => {
@@ -166,15 +189,21 @@ export function App() {
     setCurrentSlideId(slideIdAtFrame(renderPlan, frame))
   }, [renderPlan])
 
-  const handleSlideClick = useCallback((id: string) => {
-    const startFrame = startFrameForSlideId(renderPlan, id)
-    if (startFrame !== null) {
-      playerRef.current?.seekTo(startFrame)
-    }
-    setSelectedSlideId((previousId) => (previousId === id ? null : id))
-  }, [renderPlan])
+  const handleSlideSelect = useCallback((id: string, event: { metaKey: boolean; seek?: boolean; shiftKey: boolean }) => {
+    selectSlide(id, event)
 
-  const selectedSlide: Slide | null = selectedSlideId ? slides.find(s => s.id === selectedSlideId) ?? null : null
+    if (event.seek !== false && !event.metaKey && !event.shiftKey) {
+      const startFrame = startFrameForSlideId(renderPlan, id)
+      if (startFrame !== null) {
+        playerRef.current?.seekTo(startFrame)
+      }
+    }
+  }, [renderPlan, selectSlide])
+
+  const selectedSlideCount = selectedSlideIds.size
+  const selectedSlide: Slide | null = selectedSlideCount > 0
+    ? slides.find((slide) => selectedSlideIds.has(slide.id)) ?? null
+    : null
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -246,12 +275,15 @@ export function App() {
                 currentFrame={currentFrame}
                 currentSlideId={currentSlideId}
                 loudnessCache={loudnessCache}
-                onReorder={handleReorder}
+                onClearSelection={clearSelection}
+                onMoveToBeginning={handleMoveToBeginning}
+                onMoveToEnd={handleMoveToEnd}
+                onReorderBlock={handleReorderBlock}
                 onSeek={handleSeek}
-                onSlideClick={handleSlideClick}
+                onSlideSelect={handleSlideSelect}
                 onToggleExclude={handleToggleExclude}
                 renderPlan={renderPlan}
-                selectedSlideId={selectedSlideId}
+                selectedSlideIds={selectedSlideIds}
                 slides={slides}
               />
             ) : null}
@@ -259,22 +291,26 @@ export function App() {
               <EditorSidebar
                 analysisStatus={beatGrid.analysisStatus}
                 aspectRatio={aspectRatio}
+                audioClips={audioClips}
                 audioTracks={audioTracks}
                 effectiveBeatGrid={beatGrid.effectiveBeatGrid}
+                globalSettings={globalSettings}
                 jamendoClientId={import.meta.env.VITE_JAMENDO_CLIENT_ID}
+                loudnessCache={loudnessCache}
                 manualBeatGrid={manualBeatGrid}
                 onAddTitleSlide={handleAddTitleSlide}
                 onApplyManualBpm={beatGrid.applyManualBpm}
                 onApplyTapTimestamps={beatGrid.applyTapTimestamps}
                 onAspectRatioChange={setAspectRatio}
+                onAudioClipsChange={updateAudioClips}
                 onClearManualBeatGrid={beatGrid.clearManualBeatGrid}
                 onJamendoAdd={project.addJamendoTrack}
                 onSettingsChange={handleSettingsChange}
-                onAudioClipsChange={updateAudioClips}
+                onSlideOverride={handleSlideOverride}
                 onThemeChange={handleThemeChange}
-                audioClips={audioClips}
-                loudnessCache={loudnessCache}
-                settings={globalSettings}
+                onUpdateTitleSlide={handleUpdateTitleSlide}
+                selectedSlide={selectedSlide}
+                selectedSlideCount={selectedSlideCount}
                 themeName={themeName}
               />
             }
@@ -298,22 +334,6 @@ export function App() {
         />
       )}
 
-      {selectedSlide && isTitleSlide(selectedSlide) && (
-        <TitleSlideDialog
-          slide={selectedSlide}
-          onUpdate={handleUpdateTitleSlide}
-          onOverride={handleSlideOverride}
-          onClose={() => setSelectedSlideId(null)}
-        />
-      )}
-      {selectedSlide && !isTitleSlide(selectedSlide) && (
-        <SlideSettingsDialog
-          slide={selectedSlide}
-          globalSettings={globalSettings}
-          onOverride={handleSlideOverride}
-          onClose={() => setSelectedSlideId(null)}
-        />
-      )}
     </div>
   )
 }

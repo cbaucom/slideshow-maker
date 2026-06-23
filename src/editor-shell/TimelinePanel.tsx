@@ -10,6 +10,7 @@ import type { AudioTrack } from '../project-store'
 import { TimelineAudioClip } from './TimelineAudioClip'
 import { TimelineMediaBlock } from './TimelineMediaBlock'
 import { TimelineZoomControls } from './TimelineZoomControls'
+import type { TimelineDragState } from './timelineDrag'
 import { useTimelineZoom } from './useTimelineZoom'
 import { useWaveformPeaks } from './useWaveformPeaks'
 
@@ -19,12 +20,15 @@ type Props = {
   currentFrame: number
   currentSlideId: string | null
   loudnessCache: LoudnessCache | undefined
-  onReorder: (fromIndex: number, toIndex: number) => void
+  onClearSelection: () => void
+  onMoveToBeginning: (indices: number[]) => void
+  onMoveToEnd: (indices: number[]) => void
+  onReorderBlock: (fromIndices: number[], toIndex: number) => void
   onSeek: (frame: number) => void
-  onSlideClick: (id: string) => void
+  onSlideSelect: (id: string, event: { metaKey: boolean; seek?: boolean; shiftKey: boolean }) => void
   onToggleExclude: (id: string) => void
   renderPlan: RenderPlan
-  selectedSlideId: string | null
+  selectedSlideIds: ReadonlySet<string>
   slides: Slide[]
 }
 
@@ -34,16 +38,19 @@ export function TimelinePanel({
   currentFrame,
   currentSlideId,
   loudnessCache,
-  onReorder,
+  onClearSelection,
+  onMoveToBeginning,
+  onMoveToEnd,
+  onReorderBlock,
   onSeek,
-  onSlideClick,
+  onSlideSelect,
   onToggleExclude,
   renderPlan,
-  selectedSlideId,
+  selectedSlideIds,
   slides,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const mediaDragIndexRef = useRef<number | null>(null)
+  const mediaDragRef = useRef<TimelineDragState | null>(null)
   const { waveformCache } = useWaveformPeaks({ audioClips, audioTracks })
   const {
     pixelsPerFrame,
@@ -66,9 +73,12 @@ export function TimelinePanel({
 
   const playheadLeftPx = currentFrame * pixelsPerFrame
   const included = slides.filter((slide) => !slide.excluded).length
+  const selectionCount = selectedSlideIds.size
 
   const handleTimelineClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('[data-timeline-block]')) return
+
+    onClearSelection()
 
     const bounds = event.currentTarget.getBoundingClientRect()
     const scrollLeft = scrollRef.current?.scrollLeft ?? 0
@@ -76,7 +86,7 @@ export function TimelinePanel({
     const frame = Math.round(clickX / pixelsPerFrame)
     const clampedFrame = Math.max(0, Math.min(frame, Math.max(renderPlan.totalFrames - 1, 0)))
     onSeek(clampedFrame)
-  }, [onSeek, pixelsPerFrame, renderPlan.totalFrames])
+  }, [onClearSelection, onSeek, pixelsPerFrame, renderPlan.totalFrames])
 
   useEffect(() => {
     const scrollElement = scrollRef.current
@@ -99,7 +109,10 @@ export function TimelinePanel({
           {included === slides.length
             ? `${slides.length} slide${slides.length !== 1 ? 's' : ''}`
             : `${included} / ${slides.length} included`}
-          <span className="text-muted-foreground/70"> · ⌘/ctrl + scroll to zoom</span>
+          {selectionCount > 0 ? (
+            <span className="text-muted-foreground/70"> · {selectionCount} selected</span>
+          ) : null}
+          <span className="text-muted-foreground/70"> · ⌘/ctrl+click multi-select · shift+click range · overrides in sidebar</span>
         </p>
         <TimelineZoomControls
           onResetZoom={resetZoom}
@@ -132,15 +145,18 @@ export function TimelinePanel({
                 return (
                   <TimelineMediaBlock
                     currentSlideId={currentSlideId}
-                    dragIndexRef={mediaDragIndexRef}
+                    dragRef={mediaDragRef}
                     key={slide.id}
                     leftPx={block.leftPx}
-                    onReorder={onReorder}
-                    onSlideClick={onSlideClick}
+                    onMoveToBeginning={onMoveToBeginning}
+                    onMoveToEnd={onMoveToEnd}
+                    onReorderBlock={onReorderBlock}
+                    onSlideSelect={onSlideSelect}
                     onToggleExclude={onToggleExclude}
-                    selectedSlideId={selectedSlideId}
+                    selectedSlideIds={selectedSlideIds}
                     slide={slide}
                     slideIndex={slideIndex}
+                    slides={slides}
                     widthPx={block.widthPx}
                   />
                 )

@@ -2,7 +2,15 @@ export { ASPECT_RATIOS, DEFAULT_ASPECT_RATIO, DEFAULT_MEDIA_ASPECT_RATIO_CSS, di
 export type { AspectRatio, CanvasDimensions } from './aspect'
 export { getMediaType, isSupportedAudio, isSupportedMedia, sortByFilename } from './media'
 export { addAudioClip, moveAudioClip, removeAudioClip, updateAudioClipGain } from './audioClips'
-export { moveSlide, toggleExcluded, filterIncluded, createTitleSlide } from './timeline'
+export {
+  createTitleSlide,
+  filterIncluded,
+  moveSlide,
+  moveSlideBlock,
+  moveSlidesToBeginning,
+  moveSlidesToEnd,
+  toggleExcluded,
+} from './timeline'
 export { resolve, applyImageDuration, DEFAULT_GLOBAL_SETTINGS, THEMES, applyTheme } from './settings'
 export type {
   GlobalSettings,

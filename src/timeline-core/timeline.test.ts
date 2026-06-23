@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { moveSlide, toggleExcluded, filterIncluded, createTitleSlide } from './timeline'
+import {
+  createTitleSlide,
+  filterIncluded,
+  moveSlide,
+  moveSlideBlock,
+  moveSlidesToBeginning,
+  moveSlidesToEnd,
+  toggleExcluded,
+} from './timeline'
 import type { MediaSlide, Slide } from './types'
 
 function slide(id: string, excluded = false): MediaSlide {
@@ -29,6 +37,47 @@ describe('moveSlide', () => {
     const slides = [slide('a'), slide('b'), slide('c')]
     moveSlide(slides, 0, 2)
     expect(slides.map(s => s.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('moveSlidesToBeginning', () => {
+  it('moves one slide to the front', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlidesToBeginning(slides, [2]).map((entry) => entry.id)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('preserves relative order among multiple selected slides', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlidesToBeginning(slides, [1, 3]).map((entry) => entry.id)).toEqual(['b', 'd', 'a', 'c', 'e'])
+  })
+})
+
+describe('moveSlidesToEnd', () => {
+  it('moves one slide to the back', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlidesToEnd(slides, [0]).map((entry) => entry.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('preserves relative order among multiple selected slides', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlidesToEnd(slides, [1, 3]).map((entry) => entry.id)).toEqual(['a', 'c', 'e', 'b', 'd'])
+  })
+})
+
+describe('moveSlideBlock', () => {
+  it('delegates to moveSlide for a single index', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlideBlock(slides, [0], 2).map((entry) => entry.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('moves a non-contiguous block forward', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 4).map((entry) => entry.id)).toEqual(['a', 'c', 'e', 'b', 'd'])
+  })
+
+  it('moves a non-contiguous block backward', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 0).map((entry) => entry.id)).toEqual(['b', 'd', 'a', 'c', 'e'])
   })
 })
 
