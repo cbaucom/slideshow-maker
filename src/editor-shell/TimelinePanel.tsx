@@ -5,6 +5,7 @@ import type { LoudnessCache } from '../audio-analysis/types'
 import {
   buildTimelineLayout,
   type RenderPlan,
+  type TimelineMediaBlock as TimelineMediaBlockLayout,
 } from '../sequence-planner'
 import type { AudioTrack } from '../project-store'
 import { TimelineAudioClip } from './TimelineAudioClip'
@@ -14,11 +15,18 @@ import type { TimelineDragState } from './timelineDrag'
 import { useTimelineZoom } from './useTimelineZoom'
 import { useWaveformPeaks } from './useWaveformPeaks'
 
+const TIMELINE_SCROLL_MARGIN_PX = 48
+
+function blockCenterPx(block: TimelineMediaBlockLayout): number {
+  return block.leftPx + block.widthPx / 2
+}
+
 type Props = {
   audioClips: AudioClip[]
   audioTracks: AudioTrack[]
   currentFrame: number
   currentSlideId: string | null
+  isPlaying: boolean
   loudnessCache: LoudnessCache | undefined
   onClearSelection: () => void
   onMoveToBeginning: (indices: number[]) => void
@@ -38,6 +46,7 @@ export function TimelinePanel({
   audioTracks,
   currentFrame,
   currentSlideId,
+  isPlaying,
   loudnessCache,
   onClearSelection,
   onMoveToBeginning,
@@ -53,6 +62,7 @@ export function TimelinePanel({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const mediaDragRef = useRef<TimelineDragState | null>(null)
+  const lastScrolledSelectionRef = useRef<string | null>(null)
   const { waveformCache } = useWaveformPeaks({ audioClips, audioTracks })
   const {
     pixelsPerFrame,
@@ -90,19 +100,42 @@ export function TimelinePanel({
     onSeek(clampedFrame)
   }, [onClearSelection, onSeek, pixelsPerFrame, renderPlan.totalFrames])
 
-  useEffect(() => {
+  const scrollToCenterPx = useCallback((targetPx: number) => {
     const scrollElement = scrollRef.current
     if (!scrollElement) return
 
-    const playheadX = playheadLeftPx
+    const margin = TIMELINE_SCROLL_MARGIN_PX
     const viewStart = scrollElement.scrollLeft
     const viewEnd = viewStart + scrollElement.clientWidth
-    const margin = 48
 
-    if (playheadX < viewStart + margin || playheadX > viewEnd - margin) {
-      scrollElement.scrollLeft = Math.max(0, playheadX - scrollElement.clientWidth / 2)
+    if (targetPx < viewStart + margin || targetPx > viewEnd - margin) {
+      scrollElement.scrollLeft = Math.max(0, targetPx - scrollElement.clientWidth / 2)
     }
-  }, [playheadLeftPx])
+  }, [])
+
+  useEffect(() => {
+    if (!isPlaying) return
+    scrollToCenterPx(playheadLeftPx)
+  }, [isPlaying, playheadLeftPx, scrollToCenterPx])
+
+  const selectedSlideId = selectedSlideIds.size === 1 ? [...selectedSlideIds][0] : null
+
+  useEffect(() => {
+    if (!selectedSlideId) {
+      lastScrolledSelectionRef.current = null
+    }
+  }, [selectedSlideId])
+
+  useEffect(() => {
+    if (isPlaying || !selectedSlideId) return
+    if (lastScrolledSelectionRef.current === selectedSlideId) return
+
+    const block = layout.mediaBlocks.find((entry) => entry.slideId === selectedSlideId)
+    if (!block) return
+
+    scrollToCenterPx(blockCenterPx(block))
+    lastScrolledSelectionRef.current = selectedSlideId
+  }, [isPlaying, layout.mediaBlocks, scrollToCenterPx, selectedSlideId])
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card">

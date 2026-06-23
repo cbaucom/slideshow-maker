@@ -13,18 +13,49 @@ type Props = {
   compositionHeight: number
   compositionWidth: number
   onFrameChange: (frame: number) => void
+  onPlayingChange?: (isPlaying: boolean) => void
   playerRef?: React.RefObject<PlayerRef | null>
   renderPlan: RenderPlan
   totalFrames: number
 }
 
-export function PlayerPane({ compositionHeight, compositionWidth, onFrameChange, playerRef, renderPlan, totalFrames }: Props) {
+export function PlayerPane({
+  compositionHeight,
+  compositionWidth,
+  onFrameChange,
+  onPlayingChange,
+  playerRef,
+  renderPlan,
+  totalFrames,
+}: Props) {
   const embeddedHostRef = useRef<HTMLDivElement>(null)
   const presentationHostRef = useRef<HTMLDivElement>(null)
   const fallbackPlayerRef = useRef<PlayerRef>(null)
   const resolvedPlayerRef = playerRef ?? fallbackPlayerRef
   const [isPresenting, setIsPresenting] = useState(false)
   const [presentationFrame, setPresentationFrame] = useState(0)
+
+  useEffect(() => {
+    const player = resolvedPlayerRef.current
+    if (!player || !onPlayingChange) return
+
+    function handlePlay() {
+      onPlayingChange?.(true)
+    }
+
+    function handlePause() {
+      onPlayingChange?.(false)
+    }
+
+    player.addEventListener('play', handlePlay)
+    player.addEventListener('pause', handlePause)
+    onPlayingChange?.(player.isPlaying())
+
+    return () => {
+      player.removeEventListener('play', handlePlay)
+      player.removeEventListener('pause', handlePause)
+    }
+  }, [onPlayingChange, isPresenting, renderPlan, resolvedPlayerRef, totalFrames])
 
   useEffect(() => {
     let animationFrameId = 0
