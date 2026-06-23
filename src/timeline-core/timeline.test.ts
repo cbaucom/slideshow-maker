@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { moveSlide, toggleExcluded, filterIncluded, createTitleSlide } from './timeline'
+import {
+  createTitleSlide,
+  filterIncluded,
+  moveSlide,
+  moveSlideBlock,
+  moveSlidesToBeginning,
+  moveSlidesToEnd,
+  toggleExcluded,
+  toggleExcludedForIndices,
+} from './timeline'
 import type { MediaSlide, Slide } from './types'
 
 function slide(id: string, excluded = false): MediaSlide {
@@ -29,6 +38,83 @@ describe('moveSlide', () => {
     const slides = [slide('a'), slide('b'), slide('c')]
     moveSlide(slides, 0, 2)
     expect(slides.map(s => s.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('moveSlidesToBeginning', () => {
+  it('moves one slide to the front', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlidesToBeginning(slides, [2]).map((entry) => entry.id)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('preserves relative order among multiple selected slides', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlidesToBeginning(slides, [1, 3]).map((entry) => entry.id)).toEqual(['b', 'd', 'a', 'c', 'e'])
+  })
+})
+
+describe('moveSlidesToEnd', () => {
+  it('moves one slide to the back', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlidesToEnd(slides, [0]).map((entry) => entry.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('preserves relative order among multiple selected slides', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlidesToEnd(slides, [1, 3]).map((entry) => entry.id)).toEqual(['a', 'c', 'e', 'b', 'd'])
+  })
+})
+
+describe('moveSlideBlock', () => {
+  it('delegates to moveSlide for a single index', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    expect(moveSlideBlock(slides, [0], 2).map((entry) => entry.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('moves a non-contiguous block forward', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 4).map((entry) => entry.id)).toEqual(['a', 'c', 'e', 'b', 'd'])
+  })
+
+  it('moves a non-contiguous block backward', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 0).map((entry) => entry.id)).toEqual(['b', 'd', 'a', 'c', 'e'])
+  })
+
+  it('matches moveSlide for a single-item forward drop mid-list', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1], 2).map((entry) => entry.id))
+      .toEqual(moveSlide(slides, 1, 2).map((entry) => entry.id))
+  })
+
+  it('matches moveSlide for a single-item forward drop at end', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1], 4).map((entry) => entry.id))
+      .toEqual(moveSlide(slides, 1, 4).map((entry) => entry.id))
+  })
+
+  it('moves a contiguous block backward to a mid-list target', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [3, 4], 1).map((entry) => entry.id)).toEqual(['a', 'd', 'e', 'b', 'c'])
+  })
+
+  it('moves a non-contiguous block to a mid-list target', () => {
+    const slides = [slide('a'), slide('b'), slide('c'), slide('d'), slide('e')]
+    expect(moveSlideBlock(slides, [1, 3], 2).map((entry) => entry.id)).toEqual(['a', 'c', 'b', 'd', 'e'])
+  })
+})
+
+describe('toggleExcludedForIndices', () => {
+  it('excludes all selected slides when any are included', () => {
+    const slides = [slide('a'), slide('b'), slide('c')]
+    const result = toggleExcludedForIndices(slides, [0, 2])
+    expect(result.map((entry) => entry.excluded)).toEqual([true, false, true])
+  })
+
+  it('includes all selected slides when all are excluded', () => {
+    const slides = [slide('a', true), slide('b'), slide('c', true)]
+    const result = toggleExcludedForIndices(slides, [0, 2])
+    expect(result.map((entry) => entry.excluded)).toEqual([false, false, false])
   })
 })
 
