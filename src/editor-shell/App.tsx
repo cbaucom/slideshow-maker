@@ -35,6 +35,7 @@ export function App() {
   const [currentFrame, setCurrentFrame] = useState(0)
   const [currentSlideId, setCurrentSlideId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [sidebarOpenSections, setSidebarOpenSections] = useState(['settings', 'soundtrack'])
   const clearSelectionRef = useRef<(() => void) | null>(null)
 
@@ -205,6 +206,8 @@ export function App() {
       const startFrame = startFrameForSlideId(renderPlan, id)
       if (startFrame !== null) {
         playerRef.current?.seekTo(startFrame)
+        setCurrentFrame(startFrame)
+        setCurrentSlideId(id)
       }
     }
   }, [renderPlan, selectSlide])
@@ -272,6 +275,7 @@ export function App() {
                 compositionHeight={canvas.height}
                 compositionWidth={canvas.width}
                 onFrameChange={handleFrameChange}
+                onPlayingChange={setIsPlaying}
                 playerRef={playerRef}
                 renderPlan={renderPlan}
                 totalFrames={totalFrames}
@@ -283,6 +287,7 @@ export function App() {
                 audioTracks={audioTracks}
                 currentFrame={currentFrame}
                 currentSlideId={currentSlideId}
+                isPlaying={isPlaying}
                 loudnessCache={loudnessCache}
                 onClearSelection={clearSelection}
                 onMoveToBeginning={handleMoveToBeginning}

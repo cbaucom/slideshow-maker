@@ -71,9 +71,54 @@ describe('buildTimelineLayout', () => {
       [],
     )
 
+    expect(layout.mediaBlocks[0].leftPx).toBe(0)
     expect(layout.mediaBlocks[0].widthPx).toBe(60 * DEFAULT_PIXELS_PER_FRAME)
+    expect(layout.mediaBlocks[1].leftPx).toBe(45 * DEFAULT_PIXELS_PER_FRAME)
     expect(layout.mediaBlocks[1].widthPx).toBe(120 * DEFAULT_PIXELS_PER_FRAME)
     expect(layout.totalWidthPx).toBeGreaterThanOrEqual(165 * DEFAULT_PIXELS_PER_FRAME)
+  })
+
+  it('aligns included slides to render plan start frames', () => {
+    const renderPlan: RenderPlan = {
+      entries: [
+        imageEntry('a', 0, 90),
+        imageEntry('b', 75, 90),
+      ],
+      totalFrames: 165,
+    }
+
+    const layout = buildTimelineLayout(
+      [
+        renderPlan.entries[0].slide,
+        renderPlan.entries[1].slide,
+      ],
+      renderPlan,
+      [],
+    )
+
+    expect(layout.mediaBlocks[0].leftPx).toBe(0)
+    expect(layout.mediaBlocks[1].leftPx).toBe(75 * DEFAULT_PIXELS_PER_FRAME)
+  })
+
+  it('packs excluded slides after the previous block in storyboard order', () => {
+    const included = imageEntry('a', 0, 60)
+    const excludedSlide = {
+      ...imageEntry('b', 0, 30).slide,
+      excluded: true,
+    }
+    const renderPlan: RenderPlan = {
+      entries: [included],
+      totalFrames: 60,
+    }
+
+    const layout = buildTimelineLayout(
+      [included.slide, excludedSlide],
+      renderPlan,
+      [],
+    )
+
+    expect(layout.mediaBlocks[0].leftPx).toBe(0)
+    expect(layout.mediaBlocks[1].leftPx).toBe(60 * DEFAULT_PIXELS_PER_FRAME + 4)
   })
 
   it('enforces a minimum block width for very short slides', () => {

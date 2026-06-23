@@ -54,32 +54,39 @@ function blockWidthPx(
   return Math.max(minBlockWidthPx, durationInFrames * pixelsPerFrame)
 }
 
-function durationInFramesForSlide(slide: Slide, renderPlan: RenderPlan): number {
-  const entry = firstPassEntries(renderPlan).find((planEntry) => planEntry.slide.id === slide.id)
-  if (entry) return entry.durationInFrames
-  if (isTitleSlide(slide)) return slide.durationInFrames
-  return slide.durationInFrames
-}
-
 function buildMediaBlocks(
   slides: Slide[],
   renderPlan: RenderPlan,
   pixelsPerFrame: number,
   minBlockWidthPx: number,
 ): TimelineMediaBlock[] {
-  let leftPx = 0
+  const entryBySlideId = new Map(
+    firstPassEntries(renderPlan).map((entry) => [entry.slide.id, entry]),
+  )
+  let packedLeftPx = 0
   const blocks: TimelineMediaBlock[] = []
 
   for (const slide of slides) {
-    const durationInFrames = durationInFramesForSlide(slide, renderPlan)
+    const entry = slide.excluded ? undefined : entryBySlideId.get(slide.id)
+    const durationInFrames = entry?.durationInFrames
+      ?? (isTitleSlide(slide) ? slide.durationInFrames : slide.durationInFrames)
     const widthPx = blockWidthPx(durationInFrames, pixelsPerFrame, minBlockWidthPx)
+    const leftPx = entry
+      ? entry.startFrame * pixelsPerFrame
+      : packedLeftPx
+
     blocks.push({
       durationInFrames,
       leftPx,
       slideId: slide.id,
       widthPx,
     })
-    leftPx += widthPx + TIMELINE_BLOCK_GAP_PX
+
+    if (entry) {
+      packedLeftPx = Math.max(packedLeftPx, leftPx + widthPx + TIMELINE_BLOCK_GAP_PX)
+    } else {
+      packedLeftPx += widthPx + TIMELINE_BLOCK_GAP_PX
+    }
   }
 
   return blocks
@@ -93,10 +100,10 @@ export function buildTimelineLayout(
   minBlockWidthPx = DEFAULT_MIN_BLOCK_WIDTH_PX,
 ): TimelineLayout {
   const mediaBlocks = buildMediaBlocks(slides, renderPlan, pixelsPerFrame, minBlockWidthPx)
-  const mediaContentWidthPx = mediaBlocks.length > 0
-    ? mediaBlocks[mediaBlocks.length - 1].leftPx
-      + mediaBlocks[mediaBlocks.length - 1].widthPx
-    : 0
+  const mediaContentWidthPx = mediaBlocks.reduce(
+    (maxEnd, block) => Math.max(maxEnd, block.leftPx + block.widthPx),
+    0,
+  )
   const audioEndPx = (renderPlan.audioSegments ?? []).reduce(
     (maxEnd, segment) => Math.max(
       maxEnd,

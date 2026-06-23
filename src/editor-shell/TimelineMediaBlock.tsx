@@ -72,7 +72,7 @@ export function TimelineMediaBlock({
         <li
           className={cn(
             'absolute top-0 flex h-full shrink-0 cursor-grab flex-col gap-1 rounded-md border bg-background p-1 transition-colors hover:border-muted-foreground/60 active:cursor-grabbing',
-            slide.excluded && 'opacity-60',
+            slide.excluded && 'z-10 opacity-60',
             currentSlideId === slide.id && 'border-transparent ring-2 ring-emerald-500',
             isSelected && 'border-transparent ring-2 ring-primary',
           )}
